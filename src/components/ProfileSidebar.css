@@ -1,0 +1,217 @@
+/* Sidebar Overlay */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 999;
+}
+
+.sidebar-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Profile Sidebar Container */
+.profile-sidebar {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 360px;
+    height: 100vh;
+    background: white;
+    z-index: 1000;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+}
+
+.profile-sidebar.open {
+    right: 0;
+}
+
+/* Header */
+.sidebar-header {
+    background: linear-gradient(135deg, #10b981 0%, #0d9488 100%);
+    padding: 30px 20px;
+    position: relative;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.close-btn:hover {
+    opacity: 1;
+}
+
+.profile-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.profile-avatar {
+    width: 60px;
+    height: 60px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.profile-details h2 {
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    margin-bottom: 4px;
+}
+
+.profile-details p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+/* Scrollable Menu */
+.sidebar-menu {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px 20px;
+}
+
+/* Hide scrollbar for cleaner look, but keep functionality */
+.sidebar-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 10px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.menu-item:hover {
+    background: #f8fafc;
+}
+
+.menu-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.bg-light-green {
+    background: #d1fae5;
+}
+
+.bg-light-pink {
+    background: #fce7f3;
+}
+
+.bg-light-blue {
+    background: #e0f2fe;
+}
+
+.bg-light-purple {
+    background: #f3e8ff;
+}
+
+.bg-light-yellow {
+    background: #fef3c7;
+}
+
+.bg-light-indigo {
+    background: #e0e7ff;
+}
+
+.bg-light-teal {
+    background: #ccfbf1;
+}
+
+.bg-light-red {
+    background: #fee2e2;
+}
+
+.menu-text h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    margin-bottom: 4px;
+}
+
+.menu-text p {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.menu-divider {
+    height: 1px;
+    background: #e2e8f0;
+    margin: 15px 0;
+}
+
+.logout-item {
+    background: #fff1f2;
+}
+
+.logout-item:hover {
+    background: #ffe4e6;
+}
+
+.text-red {
+    color: #e11d48 !important;
+}
+
+/* Footer */
+.sidebar-footer {
+    padding: 20px;
+    text-align: center;
+    border-top: 1px solid #f1f5f9;
+    background: #f8fafc;
+}
+
+.sidebar-footer p {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin: 4px 0;
+}

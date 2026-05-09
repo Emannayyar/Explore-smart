@@ -1,0 +1,251 @@
+.notifications-page {
+    min-height: 100vh;
+    background-color: #f8fafc;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #1e293b;
+}
+
+.notifications-main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+}
+
+.notifications-container {
+    width: 100%;
+}
+
+/* Header Styles */
+.notifications-header {
+    margin-bottom: 30px;
+}
+
+.header-top {
+    margin-bottom: 20px;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.back-btn:hover {
+    color: #1e293b;
+}
+
+.header-content-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.header-titles h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 8px 0;
+}
+
+.header-titles p {
+    font-size: 1.05rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.header-icon-large {
+    width: 64px;
+    height: 64px;
+    background-color: #059669;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 16px rgba(5, 150, 105, 0.2);
+}
+
+.header-actions {
+    display: flex;
+    gap: 16px;
+}
+
+.btn-mark-read {
+    background-color: #d1fae5;
+    color: #059669;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-mark-read:hover {
+    background-color: #a7f3d0;
+}
+
+.btn-clear {
+    background-color: #f1f5f9;
+    color: #475569;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-clear:hover {
+    background-color: #e2e8f0;
+}
+
+/* Notifications List */
+.notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.notification-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    gap: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    border: 1px solid #f1f5f9;
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.notification-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+.notification-card.is-new {
+    border-left: 4px solid #059669;
+}
+
+/* Icon Backgrounds */
+.notification-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-green-light {
+    background-color: #d1fae5;
+}
+
+.bg-yellow-light {
+    background-color: #fef3c7;
+}
+
+.bg-blue-light {
+    background-color: #dbeafe;
+}
+
+/* Card Content */
+.card-content {
+    flex: 1;
+}
+
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.content-header h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.badge-new {
+    background-color: #10b981;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+.message {
+    margin: 0 0 16px 0;
+    color: #475569;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.time-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+/* Actions */
+.card-actions {
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 4px;
+}
+
+.btn-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    color: #ef4444;
+    transition: background-color 0.2s;
+    opacity: 0.6;
+}
+
+.btn-delete:hover {
+    background-color: #fee2e2;
+    opacity: 1;
+}
+
+/* Empty State */
+.empty-notifications {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+    text-align: center;
+    background: white;
+    border-radius: 16px;
+    border: 1px dashed #cbd5e1;
+}
+
+.empty-notifications h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.25rem;
+    color: #334155;
+}
+
+.empty-notifications p {
+    margin: 0;
+    color: #64748b;
+}

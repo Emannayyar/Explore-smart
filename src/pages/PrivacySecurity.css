@@ -1,0 +1,404 @@
+.ps-page {
+    min-height: 100vh;
+    background-color: #f8fafc;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #1e293b;
+}
+
+.ps-main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+}
+
+.ps-container {
+    width: 100%;
+}
+
+/* Header Styles */
+.ps-header-wrapper {
+    margin-bottom: 30px;
+}
+
+.header-top {
+    margin-bottom: 20px;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.back-btn:hover {
+    color: #1e293b;
+}
+
+.header-content-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.header-titles h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 8px 0;
+}
+
+.header-titles p {
+    font-size: 1.05rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.orange-shield {
+    width: 64px;
+    height: 64px;
+    background-color: #f97316;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 16px rgba(249, 115, 22, 0.2);
+}
+
+/* Card General Styles */
+.ps-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    border: 1px solid #f1f5f9;
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.ps-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 24px 24px 16px;
+    border-bottom: 1px solid transparent;
+    /* reserved space if needed */
+}
+
+.ps-card-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.ps-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-blue-100 {
+    background-color: #e0f2fe;
+}
+
+.bg-purple-100 {
+    background-color: #f3e8ff;
+}
+
+.bg-teal-100 {
+    background-color: #ccfbf1;
+}
+
+.bg-red-100 {
+    background-color: #fee2e2;
+}
+
+.ps-card-body {
+    padding: 16px 24px 32px;
+}
+
+.ps-card-body.p-0 {
+    padding: 0;
+}
+
+.ps-card-body.gap-0 {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Forms & Inputs */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 8px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #1e293b;
+    background: white;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    border-color: #3b82f6;
+}
+
+.input-with-icon {
+    position: relative;
+}
+
+.btn-eye {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.btn-eye:hover {
+    color: #475569;
+}
+
+.btn-update-password {
+    background-color: #6366f1;
+    /* purple-blue */
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-bottom: 32px;
+}
+
+.btn-update-password:hover {
+    background-color: #4f46e5;
+}
+
+/* Two Factor Toggle Box */
+.two-factor-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+.tf-info h4 {
+    margin: 0 0 4px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.tf-info p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.tf-toggle {
+    width: 44px;
+    height: 24px;
+    background-color: #e2e8f0;
+    border-radius: 20px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.tf-toggle.active {
+    background-color: #334155;
+    /* dark switch */
+}
+
+.tf-thumb {
+    width: 18px;
+    height: 18px;
+    background-color: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.3s;
+}
+
+.tf-toggle.active .tf-thumb {
+    transform: translateX(20px);
+}
+
+/* Privacy Options */
+.privacy-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 24px;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.privacy-option:last-child {
+    border-bottom: none;
+}
+
+.privacy-option:hover {
+    background-color: #f8fafc;
+}
+
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+}
+
+.custom-check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.option-text h4 {
+    margin: 0 0 6px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.option-text p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+/* Data Management Options */
+.data-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.data-option.border-bottom {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.data-option:hover {
+    background-color: #f8fafc;
+}
+
+.data-option-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.data-text h4 {
+    margin: 0 0 6px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.data-text p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.data-arrow {
+    font-size: 1.25rem;
+    font-weight: 300;
+}
+
+.arrow-teal {
+    color: #14b8a6;
+}
+
+.arrow-red {
+    color: #ef4444;
+}
+
+/* Danger Zone */
+.danger-zone {
+    background-color: #fff1f2;
+    /* light red */
+    border: 1px solid #fecdd3;
+    box-shadow: none;
+}
+
+.danger-header h2 {
+    color: #e11d48;
+}
+
+.danger-box {
+    background-color: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin: 0 24px 24px;
+    border: 1px solid #fecdd3;
+}
+
+.danger-box h4 {
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.danger-box p {
+    margin: 0 0 24px 0;
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.btn-delete-account {
+    background-color: #ef4444;
+    /* bright red */
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-delete-account:hover {
+    background-color: #dc2626;
+}

@@ -1,0 +1,42 @@
+/* index.css */
+:root {
+  --color-bg-dark: #0a2420;
+  --color-bg-light: #18483b;
+  --color-primary: #00e0a8;
+  --color-primary-hover: #00c99a;
+  --color-card-bg: rgba(255, 255, 255, 0.05);
+  --color-card-border: rgba(255, 255, 255, 0.08);
+  --color-text-main: #ffffff;
+  --color-text-muted: #a3c2ba;
+  --font-main: 'Inter', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  background: radial-gradient(circle at center top, var(--color-bg-light) 0%, var(--color-bg-dark) 100%);
+  background-attachment: fixed;
+  color: var(--color-text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
