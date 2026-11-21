@@ -30,7 +30,7 @@ function AppLayout() {
             <footer className="app-shell-footer">
                 <div className="container app-shell-footer-inner">
                     <p>ExploreSmart · Final Year Project</p>
-                    <p>Trip packages shown here are sample data.</p>
+                    <p>Trip packages shown here are sample data. Photos via Wikimedia Commons, CC BY-SA (<a href="/assets/CREDITS.md">credits</a>).</p>
                 </div>
             </footer>
 

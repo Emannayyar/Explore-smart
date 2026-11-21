@@ -4,7 +4,7 @@
 export const trips = [
     {
         id: 1,
-        image: '/assets/hunza_valley.png',
+        image: '/assets/hunza-valley-1280.jpg',
         title: 'Hunza Valley Premium Experience',
         location: 'Hunza Valley',
         destination: 'Hunza Valley',
@@ -40,7 +40,7 @@ export const trips = [
     },
     {
         id: 3,
-        image: '/assets/attabad_lake.png',
+        image: '/assets/attabad-lake-1280.jpg',
         title: 'Scenic Lakes Tour',
         location: 'Naran Kaghan',
         destination: 'Naran Kaghan',
@@ -94,7 +94,7 @@ export const trips = [
     },
     {
         id: 6,
-        image: '/assets/Fairy_meadows.png',
+        image: '/assets/fairy-meadows-1280.jpg',
         title: 'Coastal Getaway',
         location: 'Fairy meadows',
         destination: 'Fairy Meadows',

@@ -13,9 +13,9 @@ const FEATURES = [
 ];
 
 const DESTINATION_CARDS = [
-    { name: 'Hunza Valley', tagline: 'Northern paradise', image: '/assets/hunza_valley.png', alt: 'Terraced green fields beneath snow-capped peaks in Hunza Valley' },
-    { name: 'Attabad Lake', tagline: 'Turquoise wonder', image: '/assets/attabad_lake.png', alt: 'Turquoise water of Attabad Lake surrounded by steep mountains' },
-    { name: 'Fairy Meadows', tagline: 'Alpine beauty', image: '/assets/Fairy_meadows.png', alt: 'Alpine meadow and pine forest facing Nanga Parbat at Fairy Meadows' },
+    { name: 'Hunza Valley', tagline: 'Northern paradise', image: '/assets/hunza-valley-1280.jpg', alt: 'Green Hunza Valley floor beneath snow-capped peaks' },
+    { name: 'Attabad Lake', tagline: 'Turquoise wonder', image: '/assets/attabad-lake-1280.jpg', alt: 'Turquoise water of Attabad Lake surrounded by steep mountains' },
+    { name: 'Fairy Meadows', tagline: 'Alpine beauty', image: '/assets/fairy-meadows-1280.jpg', alt: 'Nanga Parbat reflected in a pond at Fairy Meadows' },
 ];
 
 const STEPS = [
@@ -30,7 +30,7 @@ function Home() {
     return (
         <div>
             <section className="photo-hero home-hero" aria-labelledby="home-title">
-                <img className="photo-hero__media" src="/assets/hunza_valley.png" alt="" />
+                <img className="photo-hero__media" srcSet="/assets/hunza-valley-1280.jpg 1280w, /assets/hunza-valley-2400.jpg 2400w" sizes="100vw" src="/assets/hunza-valley-2400.jpg" alt="" />
                 <div className="photo-hero__scrim" />
                 <div className="container home-hero-inner">
                     <p className="home-hero-eyebrow">

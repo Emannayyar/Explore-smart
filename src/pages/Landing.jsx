@@ -41,7 +41,7 @@ function Landing() {
 
             <main id="main">
                 <section className="photo-hero landing-hero" aria-labelledby="landing-title">
-                    <img className="photo-hero__media" src="/assets/attabad_lake.png" alt="" />
+                    <img className="photo-hero__media" srcSet="/assets/attabad-lake-1280.jpg 1280w, /assets/attabad-lake-2400.jpg 2400w" sizes="100vw" src="/assets/attabad-lake-2400.jpg" alt="" />
                     <div className="photo-hero__scrim" />
 
                     <div className="container landing-hero-grid">
@@ -72,7 +72,7 @@ function Landing() {
                     </div>
 
                     <p className="container landing-caption">
-                        <MapPin size={14} aria-hidden="true" /> Attabad Lake, Hunza
+                        <MapPin size={14} aria-hidden="true" /> Attabad Lake, Hunza · Photo: Peracha1, CC BY-SA 4.0
                     </p>
                 </section>
 

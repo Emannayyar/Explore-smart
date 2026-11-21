@@ -15,7 +15,7 @@ function AuthLayout({ title, subtitle, children, footer }) {
         <div className="auth">
             <a className="skip-link" href="#main">Skip to content</a>
             <aside className="photo-hero auth-visual">
-                <img className="photo-hero__media" src="/assets/hero_bg.png" alt="" />
+                <img className="photo-hero__media" srcSet="/assets/passu-cones-1280.jpg 1280w, /assets/passu-cones-2400.jpg 2400w" sizes="(min-width: 900px) 50vw, 100vw" src="/assets/passu-cones-2400.jpg" alt="" />
                 <div className="photo-hero__scrim" />
                 <Brand to="/" onPhoto />
                 <div className="auth-visual-copy">
