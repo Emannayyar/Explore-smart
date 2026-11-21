@@ -1,3 +1,20 @@
+# ExploreSmart
+
+## Running the app
+
+```
+yarn install
+yarn dev:all     # web (Vite) + API together
+```
+
+- Web app: http://localhost:5173
+- API: http://localhost:3001 (Vite proxies `/api` to it)
+- Data is stored in `server/data/db.json` (created on first start; delete it to reset)
+
+See `server/README.md` for the API endpoints.
+
+---
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

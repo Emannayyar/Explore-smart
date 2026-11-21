@@ -1,246 +1,192 @@
-import React, { useState } from 'react';
-import {
-    Mountain, Home as HomeIcon, Map as MapIcon, Compass, Leaf, CloudSun, User,
-    ArrowLeft, Mail, Send, Phone, MessageSquare, HelpCircle, ChevronUp, ChevronDown,
-    Sparkles, X, MessageCircle
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import ProfileSidebar from '../components/ProfileSidebar';
-import AIChatbot from '../components/AIChatbot';
+import { useState } from 'react';
+import { useAuth } from '../context/useAuth';
+import { api } from '../api/client';
+import { useOutletContext } from 'react-router-dom';
+import { Mail, Send, MessageCircle, HelpCircle, ChevronDown } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
+import StatusNote from '../components/StatusNote';
 import './ContactSupport.css';
 
+const SUPPORT_EMAIL = 'support@exploresmart.com';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const FAQS = [
+    {
+        question: 'How do I plan a trip?',
+        answer: 'Open Plan Trip, choose a destination and fill in your budget, travellers, duration, accommodation and transport. ExploreSmart builds a plan summary with an eco score and lists matching packages.',
+    },
+    {
+        question: 'What makes a trip eco-friendly?',
+        answer: 'Shared transport, camping or shared rooms, larger groups and low-impact activities all raise the eco score. The Eco Insights page breaks down each factor for your trip.',
+    },
+    {
+        question: 'How do I save trips to my dashboard?',
+        answer: 'After generating a plan on Plan Trip, choose Save to dashboard. On Explore Trips, tap the heart on a package. Saved trips appear on your dashboard with their eco scores.',
+    },
+    {
+        question: 'Can I change my travel preferences later?',
+        answer: 'Yes. Account Settings holds your profile and travel preferences, and Appearance lets you switch between light, dark and automatic themes.',
+    },
+    {
+        question: 'How accurate is the weather information?',
+        answer: 'The Weather page shows current conditions for each destination from Open-Meteo, plus general seasonal guidance. Mountain weather changes quickly, so check a local forecast again before you travel.',
+    },
+];
+
+const EMPTY_FORM = { name: '', email: '', subject: '', message: '' };
+
 function ContactSupport() {
-    const navigate = useNavigate();
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const { openChat } = useOutletContext() ?? {};
+    const [openFaqIndex, setOpenFaqIndex] = useState(0);
     const { user } = useAuth();
-    
-    // FAQ State
-    const [openFaqIndex, setOpenFaqIndex] = useState(0); // First one open by default
+    const [form, setForm] = useState({ ...EMPTY_FORM, name: user.name, email: user.email });
+    const [errors, setErrors] = useState({});
+    const [status, setStatus] = useState({ tone: 'info', message: '' });
+    const [sending, setSending] = useState(false);
 
-    const faqs = [
-        {
-            question: "How do I plan a trip using the AI planner?",
-            answer: "Navigate to the \"Plan Trip\" page, fill in your destination, budget, number of travelers, and preferences. Our AI will generate personalized recommendations for you."
-        },
-        {
-            question: "What makes a trip eco-friendly?",
-            answer: "Eco-friendly trips prioritize sustainable transportation, green accommodations, and activities that minimize environmental impact. Check the Eco Insights page for detailed metrics."
-        },
-        {
-            question: "How do I save trips to my dashboard?",
-            answer: "When viewing trip results, click the \"Save Trip\" button on any package. You can access all saved trips from your dashboard."
-        },
-        {
-            question: "Can I change my travel preferences later?",
-            answer: "Yes! Go to Account Settings and update your eco-friendly preferences or any other travel settings anytime."
-        },
-        {
-            question: "How accurate is the weather information?",
-            answer: "We use real-time data sources to provide the most accurate weather forecasts and safety alerts for destinations across Pakistan."
+    const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const next = {};
+        if (!form.name.trim()) next.name = 'Enter your name.';
+        if (!EMAIL_RE.test(form.email.trim())) next.email = 'Enter a valid email address.';
+        if (!form.subject.trim()) next.subject = 'Add a short subject.';
+        else if (form.subject.trim().length > 150) next.subject = 'Use 150 characters or fewer.';
+        if (!form.message.trim()) next.message = 'Tell us how we can help.';
+        else if (form.message.trim().length > 2000) next.message = 'Use 2000 characters or fewer.';
+        setErrors(next);
+        setStatus({ tone: 'info', message: '' });
+        if (Object.keys(next).length > 0) return;
+
+        setSending(true);
+        try {
+            await api.post('/contact', {
+                name: form.name.trim(),
+                email: form.email.trim(),
+                subject: form.subject.trim(),
+                message: form.message.trim(),
+            });
+            setForm((f) => ({ ...f, subject: '', message: '' }));
+            setStatus({ tone: 'success', message: 'Thanks, your message was sent. We will reply by email.' });
+        } catch (err) {
+            setStatus({ tone: 'danger', message: `Your message was not sent. ${err.message}` });
+        } finally {
+            setSending(false);
         }
-    ];
-
-    const toggleFaq = (index) => {
-        setOpenFaqIndex(openFaqIndex === index ? -1 : index);
     };
 
+    const fieldProps = (field) => ({
+        id: `support-${field}`,
+        value: form[field],
+        onChange: update(field),
+        'aria-invalid': errors[field] ? true : undefined,
+        'aria-describedby': errors[field] ? `support-${field}-error` : undefined,
+    });
+
     return (
-        <div className="contact-support-page">
-            <ProfileSidebar isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+        <div className="container page">
+            <PageHeader
+                backTo="/home"
+                title="Contact Support"
+                subtitle="Questions about planning, packages or your account? We are here to help."
+            />
 
-            {/* Top Navigation - Light Theme */}
-            <nav className="top-nav-light">
-                <div className="nav-brand">
-                    <div className="brand-logo-small bg-green-nav">
-                        <Mountain size={20} color="white" />
+            <div className="support-layout">
+                <section className="card" aria-labelledby="support-form-title">
+                    <div className="card__header">
+                        <h2 id="support-form-title" className="card__title">Send us a message</h2>
                     </div>
-                    <div className="brand-text">
-                        <span className="brand-name text-dark">ExploreSmart</span>
-                        <span className="brand-sub text-green">AI Travel Planner</span>
-                    </div>
+                    <form className="form-stack" onSubmit={handleSubmit} noValidate>
+                        <div className="form-grid">
+                            <div className="field">
+                                <label htmlFor="support-name" className="field__label">Your name</label>
+                                <input type="text" className="input" placeholder="Your full name" autoComplete="name" required {...fieldProps('name')} />
+                                {errors.name && <p id="support-name-error" className="field__error">{errors.name}</p>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="support-email" className="field__label">Email address</label>
+                                <input type="email" className="input" placeholder="name@example.com" autoComplete="email" required {...fieldProps('email')} />
+                                {errors.email && <p id="support-email-error" className="field__error">{errors.email}</p>}
+                            </div>
+                        </div>
+                        <div className="field">
+                            <label htmlFor="support-subject" className="field__label">Subject</label>
+                            <input type="text" className="input" placeholder="How can we help you?" required {...fieldProps('subject')} />
+                            {errors.subject && <p id="support-subject-error" className="field__error">{errors.subject}</p>}
+                        </div>
+                        <div className="field">
+                            <label htmlFor="support-message" className="field__label">Message</label>
+                            <textarea className="textarea" placeholder="Tell us more about your question..." rows={6} required {...fieldProps('message')} />
+                            {errors.message && <p id="support-message-error" className="field__error">{errors.message}</p>}
+                        </div>
+                        <button type="submit" className="btn btn--primary support-submit" disabled={sending}>
+                            <Send size={18} aria-hidden="true" /> {sending ? 'Sending…' : 'Send message'}
+                        </button>
+                        {status.message && <StatusNote tone={status.tone}>{status.message}</StatusNote>}
+                    </form>
+                </section>
+
+                <aside className="support-side" aria-label="Other ways to get help">
+                    <section className="card" aria-labelledby="support-reach-title">
+                        <h2 id="support-reach-title" className="card__title support-side-title">Other ways to reach us</h2>
+                        <a className="support-method" href={`mailto:${SUPPORT_EMAIL}`}>
+                            <span className="icon-chip icon-chip--info" aria-hidden="true"><Mail size={18} /></span>
+                            <span className="support-method-text">
+                                <span className="support-method-label">Email</span>
+                                <span className="support-method-value">{SUPPORT_EMAIL}</span>
+                            </span>
+                        </a>
+                    </section>
+
+                    <section className="card card--sunken support-guide" aria-labelledby="support-guide-title">
+                        <span className="icon-chip" aria-hidden="true"><MessageCircle size={18} /></span>
+                        <h2 id="support-guide-title" className="card__title">Need quick help?</h2>
+                        <p className="text-muted">The trip guide answers common questions about destinations, budgets, weather and eco travel with prepared, automated answers.</p>
+                        {openChat && (
+                            <button type="button" className="btn btn--secondary" onClick={openChat}>Open the trip guide</button>
+                        )}
+                    </section>
+                </aside>
+            </div>
+
+            <section className="card" aria-labelledby="support-faq-title">
+                <div className="card__header">
+                    <span className="icon-chip icon-chip--accent" aria-hidden="true"><HelpCircle size={18} /></span>
+                    <h2 id="support-faq-title" className="card__title">Frequently asked questions</h2>
                 </div>
-
-                <div className="nav-links">
-                    <Link to="/home" className="nav-link text-dark">
-                        <HomeIcon size={16} /> Home
-                    </Link>
-                    <Link to="/plan" className="nav-link text-dark">
-                        <MapIcon size={16} /> Plan Trip
-                    </Link>
-                    <Link to="/explore" className="nav-link text-dark">
-                        <Compass size={16} /> Explore Trips
-                    </Link>
-                    <Link to="/eco" className="nav-link text-dark">
-                        <Leaf size={16} /> Eco Insights
-                    </Link>
-                    <Link to="/weather" className="nav-link text-dark">
-                        <CloudSun size={16} /> Weather
-                    </Link>
-                </div>
-
-                <div className="nav-profile" onClick={() => setIsProfileOpen(true)} style={{ cursor: 'pointer' }}>
-                    <div className="profile-icon bg-green-nav">
-                        <User size={18} color="white" />
-                    </div>
-                    <div className="profile-text">
-                        <span className="profile-name text-dark">{user?.displayName || 'Guest'}</span>
-                        <span className="profile-action">View Profile</span>
-                    </div>
-                </div>
-            </nav>
-
-            <main className="contact-main">
-                <div className="contact-container">
-
-                    {/* Header Section */}
-                    <div className="contact-header-wrapper">
-                        <div className="header-top">
-                            <button className="back-btn" onClick={() => navigate('/home')}>
-                                <ArrowLeft size={16} />
-                                <span>Back to Home</span>
-                            </button>
-                        </div>
-
-                        <div className="header-content-wrapper">
-                            <div className="header-titles">
-                                <h1>Contact Support</h1>
-                                <p>We're here to help with any questions</p>
-                            </div>
-                            <div className="header-icon-large teal-mail">
-                                <Mail size={32} color="white" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Main Layout Grid */}
-                    <div className="contact-split-layout">
-                        
-                        {/* Left Column - Contact Form */}
-                        <div className="contact-form-section">
-                            <div className="contact-card">
-                                <h2>Send us a message</h2>
-                                
-                                <form className="support-form" onSubmit={(e) => e.preventDefault()}>
-                                    <div className="form-row">
-                                        <div className="form-group-col">
-                                            <label>Your Name</label>
-                                            <input type="text" placeholder="John Doe" />
-                                        </div>
-                                        <div className="form-group-col">
-                                            <label>Email Address</label>
-                                            <input type="email" placeholder="john@example.com" />
-                                        </div>
-                                    </div>
-
-                                    <div className="form-group-full">
-                                        <label>Subject</label>
-                                        <input type="text" placeholder="How can we help you?" />
-                                    </div>
-
-                                    <div className="form-group-full">
-                                        <label>Message</label>
-                                        <textarea placeholder="Tell us more about your inquiry..." rows="6"></textarea>
-                                    </div>
-
-                                    <button type="submit" className="btn-send-message">
-                                        <Send size={18} />
-                                        <span>Send Message</span>
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-
-                        {/* Right Column - Info Cards */}
-                        <div className="contact-info-section">
-                            {/* Card 1: Reach Us */}
-                            <div className="contact-card min-padding">
-                                <h3>Other Ways to Reach Us</h3>
-                                
-                                <div className="reach-method">
-                                    <div className="reach-icon bg-blue-100">
-                                        <Mail size={18} color="#2563eb" />
-                                    </div>
-                                    <div className="reach-text">
-                                        <h4>Email</h4>
-                                        <p>support@exploresmart.com</p>
-                                    </div>
-                                </div>
-
-                                <div className="reach-method">
-                                    <div className="reach-icon bg-green-100">
-                                        <Phone size={18} color="#16a34a" />
-                                    </div>
-                                    <div className="reach-text">
-                                        <h4>Phone</h4>
-                                        <p>+92 300 1234567</p>
-                                    </div>
-                                </div>
-
-                                <div className="reach-method">
-                                    <div className="reach-icon bg-purple-100">
-                                        <MessageSquare size={18} color="#9333ea" />
-                                    </div>
-                                    <div className="reach-text">
-                                        <h4>Live Chat</h4>
-                                        <p>Available 24/7</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Card 2: Quick Help Bot */}
-                            <div className="contact-card quick-help-card">
-                                <h3>Need Quick Help?</h3>
-                                <p>Try our AI chatbot for instant answers to common questions!</p>
-                                <AIChatbot />
-                            </div>
-                        </div>
-
-                    </div>
-
-                    {/* FAQ Section */}
-                    <div className="contact-card faq-section">
-                        <div className="faq-header">
-                            <div className="faq-icon-wrapper bg-yellow-100">
-                                <HelpCircle size={20} color="#d97706" />
-                            </div>
-                            <h2>Frequently Asked Questions</h2>
-                        </div>
-
-                        <div className="faq-list">
-                            {faqs.map((faq, index) => {
-                                const isOpen = openFaqIndex === index;
-                                return (
-                                    <div 
-                                        key={index} 
-                                        className={`faq-item ${isOpen ? 'open' : ''}`}
-                                        onClick={() => toggleFaq(index)}
+                <ul className="support-faq-list" role="list">
+                    {FAQS.map((faq, index) => {
+                        const isOpen = openFaqIndex === index;
+                        return (
+                            <li key={faq.question} className="support-faq-item">
+                                <h3 className="support-faq-heading">
+                                    <button
+                                        type="button"
+                                        className="support-faq-toggle"
+                                        aria-expanded={isOpen}
+                                        aria-controls={`support-faq-${index}`}
+                                        id={`support-faq-btn-${index}`}
+                                        onClick={() => setOpenFaqIndex(isOpen ? -1 : index)}
                                     >
-                                        <div className="faq-question">
-                                            <h3>{faq.question}</h3>
-                                            <div className="faq-toggle-icon">
-                                                {isOpen ? 
-                                                    <span className="triangle-up"></span> : 
-                                                    <span className="triangle-down"></span>
-                                                }
-                                            </div>
-                                        </div>
-                                        {isOpen && (
-                                            <div className="faq-answer">
-                                                <div className="answer-line"></div>
-                                                <p>{faq.answer}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                </div>
-            </main>
-            {/* Floating Chat Widget */}
-            <AIChatbot />
+                                        {faq.question}
+                                        <ChevronDown size={20} className="support-faq-chevron" aria-hidden="true" />
+                                    </button>
+                                </h3>
+                                <div
+                                    id={`support-faq-${index}`}
+                                    role="region"
+                                    aria-labelledby={`support-faq-btn-${index}`}
+                                    className="support-faq-answer"
+                                    hidden={!isOpen}
+                                >
+                                    <p>{faq.answer}</p>
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </section>
         </div>
     );
 }

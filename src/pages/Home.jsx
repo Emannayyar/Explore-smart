@@ -1,241 +1,140 @@
-import React, { useState } from 'react';
-import {
-    Mountain, Home as HomeIcon, Map, Compass, Leaf, CloudSun, User, Sparkles,
-    ArrowRight, Users, ShieldCheck, MessageCircle, DollarSign,
-    Star
-} from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import ProfileSidebar from '../components/ProfileSidebar';
-import AIChatbot from '../components/AIChatbot';
+import { ArrowRight, Map as MapIcon, Compass, Leaf, CloudSun } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
+import { trips } from '../data/trips';
+import { DESTINATIONS } from '../data/destinations';
 import './Home.css';
 
+const FEATURES = [
+    { to: '/plan', icon: MapIcon, title: 'Trip planner', text: 'Set a destination, budget and group size and get a plan summary with matching packages.' },
+    { to: '/explore', icon: Compass, title: 'Package comparison', text: 'Compare packages side by side: price, duration, rating, weather and eco level.' },
+    { to: '/weather', icon: CloudSun, title: 'Weather awareness', text: 'Seasonal guidance and safety tips so you pick the right time to travel.' },
+    { to: '/eco', icon: Leaf, title: 'Eco-friendly score', text: 'See how transport, stay, group size and activities change your trip’s impact.' },
+];
+
+const DESTINATION_CARDS = [
+    { name: 'Hunza Valley', tagline: 'Northern paradise', image: '/assets/hunza_valley.png', alt: 'Terraced green fields beneath snow-capped peaks in Hunza Valley' },
+    { name: 'Attabad Lake', tagline: 'Turquoise wonder', image: '/assets/attabad_lake.png', alt: 'Turquoise water of Attabad Lake surrounded by steep mountains' },
+    { name: 'Fairy Meadows', tagline: 'Alpine beauty', image: '/assets/Fairy_meadows.png', alt: 'Alpine meadow and pine forest facing Nanga Parbat at Fairy Meadows' },
+];
+
+const STEPS = [
+    { title: 'Tell us your trip', text: 'Destination, budget, travellers, days, stay and transport.' },
+    { title: 'Read your smart plan', text: 'A summary with a 100-point eco score and what drives it.' },
+    { title: 'Pick a package', text: 'Open a recommended package on the operator’s own site to book.' },
+];
+
 function Home() {
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
     const { user } = useAuth();
 
     return (
-        <div className="landing-page">
-            <ProfileSidebar isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} username="amanjawaid434" email="amanjawaid434@gmail.com" />
-
-            {/* Top Navigation */}
-            <nav className="top-nav">
-                <div className="nav-brand">
-                    <div className="brand-logo-small">
-                        <Mountain size={20} color="white" />
-                    </div>
-                    <div className="brand-text">
-                        <span className="brand-name">ExploreSmart</span>
-                        <span className="brand-sub">AI Travel Planner</span>
-                    </div>
-                </div>
-
-                <div className="nav-links">
-                    <a href="#" className="nav-link active">
-                        <HomeIcon size={16} /> Home
-                    </a>
-                    <Link to="/plan" className="nav-link">
-                        <Map size={16} /> Plan Trip
-                    </Link>
-                    <Link to="/explore" className="nav-link">
-                        <Compass size={16} /> Explore Trips
-                    </Link>
-                    <Link to="/eco" className="nav-link">
-                        <Leaf size={16} /> Eco Insights
-                    </Link>
-                    <Link to="/weather" className="nav-link">
-                        <CloudSun size={16} /> Weather
-                    </Link>
-                </div>
-
-                <div className="nav-profile" onClick={() => setIsProfileOpen(true)} style={{ cursor: 'pointer' }}>
-                    <div className="profile-icon">
-                        <User size={18} color="white" />
-                    </div>
-                    <div className="profile-text">
-                        <span className="profile-name">{user?.displayName || 'Guest'}</span>
-                        <span className="profile-action">View Profile</span>
-                    </div>
-                </div>
-            </nav>
-
-            {/* Hero Section */}
-            <header className="new-hero-section">
-                <div className="hero-content">
-                    <div className="ai-badge">
-                        <Sparkles size={14} color="#facc15" />
-                        <span>AI-Powered Travel Intelligence</span>
-                    </div>
-
-                    <h1 className="hero-headline">
-                        Smart, Safe & Sustainable<br />
-                        <span className="text-highlight">Travel Planning</span><br />
-                        for Pakistan
-                    </h1>
-
-                    <p className="hero-subheadline">
-                        Discover Pakistan's hidden gems with AI-powered recommendations, eco-<br />
-                        friendly options, and real-time travel insights.
+        <div>
+            <section className="photo-hero home-hero" aria-labelledby="home-title">
+                <img className="photo-hero__media" src="/assets/hunza_valley.png" alt="" />
+                <div className="photo-hero__scrim" />
+                <div className="container home-hero-inner">
+                    <p className="home-hero-eyebrow">
+                        {user ? `Welcome back, ${user.displayName}` : 'Trip planning for northern Pakistan'}
                     </p>
-
-                    <div className="hero-cta-group">
-                        <Link to="/plan" className="btn-cyan" style={{ textDecoration: 'none' }}>
-                            Plan Your Trip <ArrowRight size={16} />
+                    <h1 id="home-title" className="home-hero-title">
+                        Smart, safe &amp; sustainable travel <em>for Pakistan</em>
+                    </h1>
+                    <p className="home-hero-lead">
+                        Discover Pakistan&rsquo;s hidden gems with eco-scored packages, seasonal weather guidance
+                        and a planner that fits your budget.
+                    </p>
+                    <div className="home-hero-cta">
+                        <Link to="/plan" className="btn btn--photo btn--lg">
+                            Plan your trip <ArrowRight size={18} className="btn__arrow" aria-hidden="true" />
                         </Link>
-                        <Link to="/explore" className="btn-glass" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            Explore Trips
-                        </Link>
+                        <Link to="/explore" className="btn btn--photo-outline btn--lg">Explore trips</Link>
                     </div>
-
-                    <div className="trust-indicators">
-                        <div className="trust-item">
-                            <Users size={14} /> 10,000+ Travelers
-                        </div>
-                        <div className="trust-item">
-                            <ShieldCheck size={14} /> Verified Packages
-                        </div>
-                        <div className="trust-item">
-                            <Leaf size={14} /> Eco Certified
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            {/* Features Section */}
-            <section className="features-container">
-                <div className="section-header">
-                    <h2>Why Choose ExploreSmart?</h2>
-                    <p>Experience the future of travel planning with cutting-edge AI technology<br />and sustainable practices.</p>
-                </div>
-
-                <div className="features-grid">
-                    <div className="feature-card-new">
-                        <div className="feature-icon-box bg-purple">
-                            <Sparkles size={20} color="white" />
-                        </div>
-                        <h3>AI Trip Planner</h3>
-                        <p>Get personalized travel plans powered by AI, tailored to your preferences and budget.</p>
-                    </div>
-
-                    <div className="feature-card-new">
-                        <div className="feature-icon-box bg-green">
-                            <DollarSign size={20} color="white" />
-                        </div>
-                        <h3>Package Comparison</h3>
-                        <p>Compare multiple travel packages side-by-side to find the best deal for your journey.</p>
-                    </div>
-
-                    <div className="feature-card-new">
-                        <div className="feature-icon-box bg-blue">
-                            <CloudSun size={20} color="white" />
-                        </div>
-                        <h3>Weather Awareness</h3>
-                        <p>Real-time weather updates and safety alerts to help you plan the perfect trip.</p>
-                    </div>
-
-                    <div className="feature-card-new">
-                        <div className="feature-icon-box bg-green-dark">
-                            <Leaf size={20} color="white" />
-                        </div>
-                        <h3>Eco-Friendly Score</h3>
-                        <p>Make sustainable choices with our environmental impact ratings for every trip.</p>
-                    </div>
+                    <ul className="home-hero-facts" role="list">
+                        <li><strong>{trips.length}</strong> curated packages</li>
+                        <li><strong>{DESTINATIONS.length}</strong> destinations</li>
+                        <li><strong>100-point</strong> eco score</li>
+                    </ul>
                 </div>
             </section>
 
-            {/* Destinations Section */}
-            <section className="destinations-section">
-                <div className="section-header">
-                    <h2>Explore Pakistan's Beauty</h2>
-                    <p>From majestic mountains to historic landmarks</p>
+            <section className="container home-section" aria-labelledby="home-features-title">
+                <div className="section-head">
+                    <div>
+                        <p className="eyebrow">Why ExploreSmart</p>
+                        <h2 id="home-features-title" className="home-section-title">One place to plan, compare and check</h2>
+                    </div>
                 </div>
+                <ul className="home-features" role="list">
+                    {FEATURES.map(({ to, icon, title, text }) => {
+                        const Icon = icon;
+                        return (
+                            <li key={to}>
+                                <Link to={to} className="card home-feature">
+                                    <span className="icon-chip" aria-hidden="true"><Icon size={20} /></span>
+                                    <h3 className="home-feature-title">{title}</h3>
+                                    <p className="home-feature-text">{text}</p>
+                                    <span className="home-feature-more">Open <ArrowRight size={16} aria-hidden="true" /></span>
+                                </Link>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </section>
 
-                <div className="destinations-grid">
-                    <div className="destination-card" style={{ backgroundImage: "url('/assets/hunza_valley.png')" }}>
-                        <div className="destination-info">
-                            <h3>Hunza Valley</h3>
-                            <p>Northern Paradise</p>
-                        </div>
+            <section className="container home-section" aria-labelledby="home-dest-title">
+                <div className="section-head">
+                    <div>
+                        <p className="eyebrow">Destinations</p>
+                        <h2 id="home-dest-title" className="home-section-title">Explore Pakistan&rsquo;s beauty</h2>
                     </div>
+                    <Link to="/explore" className="btn btn--secondary">
+                        See all packages <ArrowRight size={16} className="btn__arrow" aria-hidden="true" />
+                    </Link>
+                </div>
+                <ul className="home-destinations" role="list">
+                    {DESTINATION_CARDS.map((d) => (
+                        <li key={d.name}>
+                            <Link to="/explore" className="home-destination">
+                                <img src={d.image} alt={d.alt} className="home-destination-img" loading="lazy" />
+                                <span className="home-destination-caption">
+                                    <span className="home-destination-name">{d.name}</span>
+                                    <span className="home-destination-tagline">{d.tagline}</span>
+                                </span>
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+            </section>
 
-                    <div className="destination-card" style={{ backgroundImage: "url('/assets/attabad_lake.png')" }}>
-                        <div className="destination-info">
-                            <h3>Attabad Lake</h3>
-                            <p>Turquoise Wonder</p>
-                        </div>
+            <section className="container home-section" aria-labelledby="home-steps-title">
+                <div className="home-steps">
+                    <div>
+                        <p className="eyebrow">How it works</p>
+                        <h2 id="home-steps-title" className="home-section-title">From idea to booking in three steps</h2>
                     </div>
-
-                    <div className="destination-card" style={{ backgroundImage: "url('/assets/Fairy_meadows.png')" }}>
-                        <div className="destination-info">
-                            <h3>Fairy Meadows</h3>
-                            <p>Alpine Beauty</p>
-                        </div>
-                    </div>
+                    <ol className="home-step-list" role="list">
+                        {STEPS.map((s, i) => (
+                            <li key={s.title} className="home-step">
+                                <span className="home-step-index" aria-hidden="true">{i + 1}</span>
+                                <div>
+                                    <h3 className="home-step-title">{s.title}</h3>
+                                    <p className="home-step-text">{s.text}</p>
+                                </div>
+                            </li>
+                        ))}
+                    </ol>
                 </div>
             </section>
 
-            {/* Testimonials Section */}
-            <section className="testimonials-section">
-                <div className="section-header">
-                    <h2>Trusted by Travelers</h2>
-                    <p>See what our community has to say</p>
-                </div>
-
-                <div className="testimonials-grid">
-                    <div className="testimonial-card">
-                        <div className="stars">
-                            {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="#facc15" color="#facc15" />)}
-                        </div>
-                        <p className="testimonial-text">"ExploreSmart made planning my Hunza trip so easy! The AI recommendations were spot-on."</p>
-                        <div className="testimonial-author">
-                            <div className="author-avatar bg-avatar-1"></div>
-                            <div className="author-info">
-                                <h4>Ayesha Khan</h4>
-                                <span>Karachi</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="testimonial-card">
-                        <div className="stars">
-                            {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="#facc15" color="#facc15" />)}
-                        </div>
-                        <p className="testimonial-text">"Love the eco-friendly focus! Finally a platform that cares about sustainable tourism in Pakistan."</p>
-                        <div className="testimonial-author">
-                            <div className="author-avatar bg-avatar-2"></div>
-                            <div className="author-info">
-                                <h4>Ahmed Ali</h4>
-                                <span>Lahore</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="testimonial-card">
-                        <div className="stars">
-                            {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="#facc15" color="#facc15" />)}
-                        </div>
-                        <p className="testimonial-text">"The weather alerts saved our trip! We rescheduled and had the most amazing experience."</p>
-                        <div className="testimonial-author">
-                            <div className="author-avatar bg-avatar-3"></div>
-                            <div className="author-info">
-                                <h4>Sara Malik</h4>
-                                <span>Islamabad</span>
-                            </div>
-                        </div>
-                    </div>
+            <section className="container home-section">
+                <div className="home-cta">
+                    <h2 className="home-cta-title">Ready to explore Pakistan?</h2>
+                    <p className="home-cta-text">Start planning your trip and see its eco score in under a minute.</p>
+                    <Link to="/plan" className="btn btn--photo btn--lg">
+                        Plan your trip <ArrowRight size={18} className="btn__arrow" aria-hidden="true" />
+                    </Link>
                 </div>
             </section>
-
-            {/* Footer CTA */}
-            <section className="footer-cta">
-                <h2>Ready to Explore Pakistan?</h2>
-                <p>Start planning your dream trip today with AI-powered recommendations</p>
-                <Link to="/plan" className="btn-white" style={{ textDecoration: 'none' }}>
-                    <Sparkles size={16} /> Plan Your Trip <ArrowRight size={16} />
-                </Link>
-            </section>
-            {/* Floating Chat Widget */}
-            <AIChatbot />
         </div>
     );
 }

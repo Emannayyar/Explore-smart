@@ -1,196 +1,120 @@
-import React, { useState } from 'react';
-import {
-    Mountain, Home as HomeIcon, Map as MapIcon, Compass, Leaf, CloudSun, User,
-    ArrowLeft, Save, Square, CheckSquare, MessageCircle
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import ProfileSidebar from '../components/ProfileSidebar';
-import AIChatbot from '../components/AIChatbot';
+import { useState } from 'react';
+import { User, Mail, Phone, MapPin, Save } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
+import { api } from '../api/client';
+import PageHeader from '../components/PageHeader';
+import { ToggleRow } from '../components/Switch';
+import StatusNote from '../components/StatusNote';
 import './AccountSettings.css';
 
 function AccountSettings() {
-    const navigate = useNavigate();
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
 
-    // Form State
-    const [phone, setPhone] = useState('+92 300 1234567');
-    const [location, setLocation] = useState('City, Country');
-    const [about, setAbout] = useState('');
+    const [form, setForm] = useState({
+        name: user.name,
+        phone: user.phone,
+        location: user.location,
+        about: user.about,
+    });
+    const [prefs, setPrefs] = useState({
+        emailNotifications: user.preferences.emailNotifications,
+        tripReminders: user.preferences.tripReminders,
+        weatherAlerts: user.preferences.weatherAlerts,
+    });
+    const [status, setStatus] = useState({ tone: 'info', message: '' });
+    const [saving, setSaving] = useState(false);
 
-    // Preferences State
-    const [ecoFriendly, setEcoFriendly] = useState(false);
-    const [emailAlerts, setEmailAlerts] = useState(true);
-    const [marketing, setMarketing] = useState(false);
+    const setField = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+    const setPref = (key) => (value) => setPrefs((p) => ({ ...p, [key]: value }));
 
-    const handleSaveChanges = () => {
-        // Implementation for saving changes
-        console.log("Saving changes...");
+    const handleSaveChanges = async (e) => {
+        e.preventDefault();
+        if (!form.name.trim()) {
+            setStatus({ tone: 'danger', message: 'Enter your name before saving.' });
+            return;
+        }
+        setSaving(true);
+        setStatus({ tone: 'info', message: '' });
+        try {
+            const data = await api.patch('/me', { ...form, preferences: prefs });
+            updateUser(data.user);
+            setStatus({ tone: 'success', message: 'Your account settings were saved.' });
+        } catch (err) {
+            setStatus({ tone: 'danger', message: `Could not save your settings. ${err.message}` });
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
-        <div className="account-settings-page">
-            <ProfileSidebar isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+        <div className="container container--narrow page">
+            <PageHeader
+                backTo="/home"
+                title="Account Settings"
+                subtitle="Manage your profile and travel preferences."
+            />
 
-            {/* Top Navigation - Light Theme */}
-            <nav className="top-nav-light">
-                <div className="logo cursor-pointer" onClick={() => navigate('/home')}>
-                    <div className="logo-icon bg-green-nav">
-                        <Mountain color="white" size={24} />
+            <form className="acct-form" onSubmit={handleSaveChanges}>
+                <section className="card" aria-labelledby="acct-profile-title">
+                    <div className="card__header">
+                        <span className="icon-chip" aria-hidden="true"><User size={18} /></span>
+                        <h2 id="acct-profile-title" className="card__title">Profile information</h2>
                     </div>
-                    <div className="logo-text">
-                        <h1 className="text-dark">ExploreSmart</h1>
-                        <p className="text-green">AI Travel Planner</p>
-                    </div>
-                </div>
 
-                <div className="nav-links">
-                    <Link to="/home" className="nav-link text-dark"><HomeIcon size={18} /> Home</Link>
-                    <Link to="/plan" className="nav-link text-dark"><MapIcon size={18} /> Plan Trip</Link>
-                    <Link to="/explore" className="nav-link text-dark"><Compass size={18} /> Explore Trips</Link>
-                    <Link to="/eco" className="nav-link text-dark"><Leaf size={18} /> Eco Insights</Link>
-                    <Link to="/weather" className="nav-link text-dark"><CloudSun size={18} /> Weather</Link>
-                </div>
+                    <div className="form-stack">
+                        <div className="form-grid">
+                            <div className="field">
+                                <label htmlFor="acct-name" className="field__label"><User size={16} aria-hidden="true" /> Full name</label>
+                                <input id="acct-name" type="text" className="input" value={form.name} onChange={setField('name')} autoComplete="name" maxLength={80} required />
+                            </div>
+                            <div className="field">
+                                <label htmlFor="acct-email" className="field__label"><Mail size={16} aria-hidden="true" /> Email address</label>
+                                <input id="acct-email" type="email" className="input" value={user.email} readOnly aria-describedby="acct-readonly-hint" />
+                            </div>
+                            <div className="field">
+                                <label htmlFor="acct-phone" className="field__label"><Phone size={16} aria-hidden="true" /> Phone number</label>
+                                <input id="acct-phone" type="tel" className="input" placeholder="+92 3XX XXXXXXX" autoComplete="tel" value={form.phone} onChange={setField('phone')} maxLength={30} />
+                            </div>
+                            <div className="field">
+                                <label htmlFor="acct-location" className="field__label"><MapPin size={16} aria-hidden="true" /> Location</label>
+                                <input id="acct-location" type="text" className="input" placeholder="City, Country" autoComplete="address-level2" value={form.location} onChange={setField('location')} maxLength={100} />
+                            </div>
+                        </div>
+                        <p id="acct-readonly-hint" className="field__hint">Your email is your sign-in and can&rsquo;t be changed here.</p>
 
-                <div className="profile-section cursor-pointer" onClick={() => setIsProfileOpen(true)}>
-                    <div className="profile-icon">
-                        <User size={18} color="white" />
-                    </div>
-                    <div className="profile-text">
-                        <span className="profile-name text-dark">{user?.displayName || 'Guest'}</span>
-                        <span className="profile-action">View Profile</span>
-                    </div>
-                </div>
-            </nav>
-
-            <main className="settings-main">
-                <button className="back-btn" onClick={() => navigate('/home')}>
-                    <ArrowLeft size={16} /> Back to Home
-                </button>
-
-                <div className="settings-header-title">
-                    <h1>Account Settings</h1>
-                    <p>Manage your profile and preferences</p>
-                </div>
-
-                {/* Profile Information Section */}
-                <section className="settings-form-section">
-                    <h2>Profile Information</h2>
-                    
-                    <div className="form-grid">
-                        <div className="form-group">
-                            <label><User size={16} className="input-icon" /> Full Name</label>
-                            <input 
-                                type="text" 
-                                className="form-input" 
-                                value={user?.displayName || 'Guest'} 
-                                readOnly
-                                disabled
+                        <div className="field">
+                            <label htmlFor="acct-about" className="field__label">About me</label>
+                            <textarea
+                                id="acct-about"
+                                className="textarea"
+                                placeholder="Tell us about yourself and your travel interests..."
+                                value={form.about}
+                                onChange={setField('about')}
+                                maxLength={500}
+                                rows={4}
                             />
                         </div>
-                        
-                        <div className="form-group">
-                            <label><CloudSun size={16} className="input-icon opacity-0" /> Email Address</label>
-                            <input 
-                                type="email" 
-                                className="form-input" 
-                                value={user?.email || 'guest@example.com'} 
-                                readOnly
-                                disabled
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label><Compass size={16} className="input-icon opacity-0" /> Phone Number</label>
-                            <input 
-                                type="tel" 
-                                className="form-input" 
-                                value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label><MapIcon size={16} className="input-icon" /> Location</label>
-                            <input 
-                                type="text" 
-                                className="form-input" 
-                                value={location}
-                                onChange={(e) => setLocation(e.target.value)}
-                                placeholder="City, Country"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="form-group full-width mt-4">
-                        <label>About Me</label>
-                        <textarea 
-                            className="form-input textarea" 
-                            placeholder="Tell us about yourself and your travel interests..."
-                            value={about}
-                            onChange={(e) => setAbout(e.target.value)}
-                            rows={4}
-                        ></textarea>
                     </div>
                 </section>
 
-                {/* Travel Preferences Section */}
-                <section className="settings-form-section mt-6">
-                    <h2>Travel Preferences</h2>
-                    
-                    <div className="preferences-list">
-                        <div 
-                            className={`preference-card ${ecoFriendly ? 'active' : ''}`}
-                            onClick={() => setEcoFriendly(!ecoFriendly)}
-                        >
-                            <div className="pref-checkbox">
-                                {ecoFriendly ? <CheckSquare size={22} className="text-purple-500" /> : <Square size={22} className="text-gray-400" />}
-                            </div>
-                            <div className="pref-content">
-                                <h3>Prefer Eco-Friendly Options</h3>
-                                <p>Prioritize sustainable travel recommendations</p>
-                            </div>
-                        </div>
-
-                        <div 
-                            className={`preference-card ${emailAlerts ? 'active' : ''}`}
-                            onClick={() => setEmailAlerts(!emailAlerts)}
-                        >
-                            <div className="pref-checkbox">
-                                {emailAlerts ? <CheckSquare size={22} className="text-purple-500" /> : <Square size={22} className="text-gray-400" />}
-                            </div>
-                            <div className="pref-content">
-                                <h3>Email Notifications</h3>
-                                <p>Receive trip updates and recommendations</p>
-                            </div>
-                        </div>
-
-                        <div 
-                            className={`preference-card ${marketing ? 'active' : ''}`}
-                            onClick={() => setMarketing(!marketing)}
-                        >
-                            <div className="pref-checkbox">
-                                {marketing ? <CheckSquare size={22} className="text-purple-500" /> : <Square size={22} className="text-gray-400" />}
-                            </div>
-                            <div className="pref-content">
-                                <h3>Marketing Communications</h3>
-                                <p>Get travel deals and special offers</p>
-                            </div>
-                        </div>
+                <section className="card" aria-labelledby="acct-prefs-title">
+                    <div className="card__header">
+                        <h2 id="acct-prefs-title" className="card__title">Notification preferences</h2>
+                    </div>
+                    <div className="setting-list">
+                        <ToggleRow id="acct-email-alerts" title="Email notifications" description="Receive trip updates and recommendations" checked={prefs.emailNotifications} onChange={setPref('emailNotifications')} />
+                        <ToggleRow id="acct-reminders" title="Trip reminders" description="Get a reminder before your saved trips" checked={prefs.tripReminders} onChange={setPref('tripReminders')} />
+                        <ToggleRow id="acct-weather" title="Weather alerts" description="Be told about weather changes at your destinations" checked={prefs.weatherAlerts} onChange={setPref('weatherAlerts')} />
                     </div>
                 </section>
-            </main>
 
-            {/* Floating Actions */}
-            <div className="floating-actions">
-                <button className="btn-save-changes" onClick={handleSaveChanges}>
-                    <Save size={18} /> Save Changes
-                </button>
-                <div className="chat-widget-wrapper">
-                    <AIChatbot />
+                <div className="acct-actions">
+                    <button type="submit" className="btn btn--primary btn--lg" disabled={saving}>
+                        <Save size={18} aria-hidden="true" /> {saving ? 'Saving…' : 'Save changes'}
+                    </button>
+                    {status.message && <StatusNote tone={status.tone}>{status.message}</StatusNote>}
                 </div>
-            </div>
+            </form>
         </div>
     );
 }
