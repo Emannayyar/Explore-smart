@@ -1,223 +1,194 @@
-import React, { useState } from 'react';
+import { useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
-    Mountain, Home as HomeIcon, Map, Compass, Leaf, CloudSun, User, Sparkles,
-    Heart, MapPin, Star, Calendar, Sun, Cloud, Info, ArrowRight
+    Heart, MapPin, Star, Calendar, Sun, CloudSun, Info, ArrowRight, X, Leaf, Map as MapIcon,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import ProfileSidebar from '../components/ProfileSidebar';
-import AIChatbot from '../components/AIChatbot';
+import PageHeader from '../components/PageHeader';
+import { useDialogFocus } from '../hooks/useDialogFocus';
+import { useTripContext } from '../context/useTripContext';
+import { trips } from '../data/trips';
+import { calculateEcoScore, ecoLevel, isValidUrl } from '../utils/ecoScore';
+import { ecoTone, factorTone } from '../utils/ecoTone';
 import './ExploreTrips.css';
 
-const packages = [
-    {
-        id: 1,
-        image: '/assets/hunza_valley.png',
-        ecoLevel: 'High',
-        title: 'Hunza Valley Premium Experience',
-        location: 'Hunza Valley',
-        rating: 4.9,
-        reviews: 234,
-        duration: '5 days',
-        weather: 'Excellent',
-        tags: ['Attabad Lake', 'Baltit Fort', 'Eagle Nest'],
-        price: '45,000',
-    },
-    {
-        id: 2,
-        image: '/assets/hero_bg.png',
-        ecoLevel: 'High',
-        title: 'Northern Areas Adventure',
-        location: 'Skardu & Hunza',
-        rating: 4.8,
-        reviews: 189,
-        duration: '7 days',
-        weather: 'Good',
-        tags: ['Shangrila Resort', 'Deosai Plains', 'Satpara Lake'],
-        price: '52,000',
-    },
-    {
-        id: 3,
-        image: '/assets/attabad_lake.png',
-        ecoLevel: 'Medium',
-        title: 'Scenic Lakes Tour',
-        location: 'Naran Kaghan',
-        rating: 4.7,
-        reviews: 156,
-        duration: '4 days',
-        weather: 'Excellent',
-        tags: ['Saif-ul-Malook', 'Lulusar Lake', 'Babusar Top'],
-        price: '38,000',
-    },
-    {
-        id: 4,
-        image: '/assets/Mirpur AJK PAKISTAN.jpg',
-        ecoLevel: 'Low',
-        title: 'Heritage & Culture Experience',
-        location: 'Murree',
-        rating: 4.6,
-        reviews: 203,
-        duration: '3 days',
-        weather: 'Good',
-        tags: ['Badshahi Mosque', 'Lahore Fort', 'Food Street'],
-        price: '28,000',
-    },
-    {
-        id: 5,
-        image: '/assets/Swat valley.jpg',
-        ecoLevel: 'High',
-        title: 'Mountain Paradise Package',
-        location: 'Swat Valley',
-        rating: 4.8,
-        reviews: 178,
-        duration: '5 days',
-        weather: 'Excellent',
-        tags: ['Kalam Valley', 'Malam Jabba', 'Ushu Forest'],
-        price: '42,000',
-    },
-    {
-        id: 6,
-        image: '/assets/Fairy_meadows.png',
-        ecoLevel: 'Medium',
-        title: 'Coastal Getaway',
-        location: 'Fairy meadows',
-        rating: 4.5,
-        reviews: 142,
-        duration: '4 days',
-        weather: 'Good',
-        tags: ['Beach Resorts', 'Clifton', 'Port Grand'],
-        price: '35,000',
-    }
-];
-
 function ExploreTrips() {
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const { user } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { savedTrips, isTripSaved, saveCatalogTrip, removeSavedTrip } = useTripContext();
+    // notice: { id, kind: 'booking' | 'save', message } shown inline on one card
+    const [notice, setNotice] = useState(null);
+    const [detailTrip, setDetailTrip] = useState(null);
+    const closeRef = useRef(null);
+    useDialogFocus(Boolean(detailTrip), closeRef, () => setDetailTrip(null));
+
+    const ecoOnly = searchParams.get('eco') === '1';
+    const scored = trips.map((trip) => ({ trip, eco: calculateEcoScore(trip) }));
+    const visible = ecoOnly ? scored.filter(({ eco }) => eco.total >= 60) : scored;
+
+    const handleBook = (trip) => {
+        if (isValidUrl(trip.sourceUrl)) {
+            setNotice(null);
+            window.open(trip.sourceUrl, '_blank', 'noopener,noreferrer');
+        } else {
+            setNotice({ id: trip.id, kind: 'booking' });
+        }
+    };
+
+    // The heart toggles whether this catalogue trip is saved to the account.
+    const handleSave = async (trip) => {
+        setNotice(null);
+        try {
+            if (isTripSaved(trip.id)) {
+                const record = savedTrips.find((t) => t.kind === 'trip' && t.tripId === trip.id);
+                await removeSavedTrip(record.id);
+            } else {
+                await saveCatalogTrip(trip.id);
+            }
+        } catch (err) {
+            setNotice({ id: trip.id, kind: 'save', message: `Could not update saved trips. ${err.message}` });
+        }
+    };
+
+    const showAll = () => setSearchParams({});
+    const detailEco = detailTrip ? calculateEcoScore(detailTrip) : null;
 
     return (
-        <div className="explore-page">
-            <ProfileSidebar isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} username="amanjawaid434" email="amanjawaid434@gmail.com" />
+        <div className="container page">
+            <PageHeader
+                eyebrow="Explore trips"
+                title="Recommended travel packages"
+                subtitle="Compare curated packages across northern Pakistan. Every trip carries an eco score out of 100."
+                actions={(
+                    <Link to="/plan" className="btn btn--secondary">
+                        <MapIcon size={18} aria-hidden="true" /> Plan a custom trip
+                    </Link>
+                )}
+            />
 
-            {/* Top Navigation */}
-            <nav className="top-nav">
-                <div className="nav-brand">
-                    <div className="brand-logo-small">
-                        <Mountain size={20} color="white" />
-                    </div>
-                    <div className="brand-text">
-                        <span className="brand-name">ExploreSmart</span>
-                        <span className="brand-sub">AI Travel Planner</span>
-                    </div>
+            {ecoOnly && (
+                <div className="explore-filter" role="status">
+                    <span className="explore-filter-text"><Leaf size={16} aria-hidden="true" /> Showing eco-friendly trips only (eco score 60 or higher).</span>
+                    <button type="button" className="btn btn--ghost btn--sm" onClick={showAll}>Show all trips</button>
                 </div>
+            )}
 
-                <div className="nav-links">
-                    <Link to="/home" className="nav-link">
-                        <HomeIcon size={16} /> Home
-                    </Link>
-                    <Link to="/plan" className="nav-link">
-                        <Map size={16} /> Plan Trip
-                    </Link>
-                    <Link to="/explore" className="nav-link active">
-                        <Compass size={16} /> Explore Trips
-                    </Link>
-                    <Link to="/eco" className="nav-link">
-                        <Leaf size={16} /> Eco Insights
-                    </Link>
-                    <Link to="/weather" className="nav-link">
-                        <CloudSun size={16} /> Weather
-                    </Link>
-                </div>
-
-                <div className="nav-profile" onClick={() => setIsProfileOpen(true)} style={{ cursor: 'pointer' }}>
-                    <div className="profile-icon">
-                        <User size={18} color="white" />
-                    </div>
-                    <div className="profile-text">
-                        <span className="profile-name">{user?.displayName || 'Guest'}</span>
-                        <span className="profile-action">View Profile</span>
-                    </div>
-                </div>
-            </nav>
-
-            <main className="explore-content">
-                <h1 className="explore-title">Recommended Travel Packages</h1>
-
-                <div className="packages-grid">
-                    {packages.map((pkg) => (
-                        <div key={pkg.id} className="package-card">
-                            <div className="card-image-wrapper">
-                                <img src={pkg.image} alt={pkg.title} className="card-image" />
-                                <button className="heart-btn">
-                                    <Heart size={18} color="#64748b" />
+            <ul className="explore-grid" role="list">
+                {visible.map(({ trip: pkg, eco }) => {
+                    const level = ecoLevel(eco.total);
+                    const titleId = `explore-trip-${pkg.id}`;
+                    return (
+                        <li key={pkg.id} className="card card--flush explore-card">
+                            <div className="explore-media">
+                                <img src={pkg.image} alt="" className="explore-img" loading="lazy" />
+                                <button
+                                    type="button"
+                                    className="explore-heart"
+                                    onClick={() => handleSave(pkg)}
+                                    aria-label={`Save ${pkg.title}`}
+                                    aria-pressed={isTripSaved(pkg.id)}
+                                >
+                                    <Heart size={18} fill={isTripSaved(pkg.id) ? 'currentColor' : 'none'} aria-hidden="true" />
                                 </button>
-                                <div className={`eco-badge eco-${pkg.ecoLevel.toLowerCase()}`}>
-                                    <Leaf size={14} /> Eco: {pkg.ecoLevel}
-                                </div>
+                                <span className={`badge badge--${ecoTone(level)} explore-eco`}>
+                                    <Leaf size={12} aria-hidden="true" /> Eco: {level}
+                                </span>
                             </div>
 
-                            <div className="card-body">
-                                <h3 className="card-title">{pkg.title}</h3>
-                                
-                                <div className="card-location">
-                                    <MapPin size={14} color="#10b981" />
-                                    <span>{pkg.location}</span>
-                                </div>
+                            <div className="explore-body">
+                                <h2 id={titleId} className="explore-title">{pkg.title}</h2>
+                                <p className="explore-location"><MapPin size={14} aria-hidden="true" /> {pkg.location}</p>
 
-                                <div className="card-stats">
-                                    <div className="stat-item">
-                                        <Star size={14} fill="#facc15" color="#facc15" />
-                                        <span className="rating-score">{pkg.rating}</span>
-                                        <span className="rating-count">({pkg.reviews})</span>
-                                    </div>
-                                    <div className="stat-item">
-                                        <Calendar size={14} color="#64748b" />
-                                        <span>{pkg.duration}</span>
-                                    </div>
-                                </div>
+                                <ul className="explore-stats" role="list">
+                                    <li><Star size={14} className="explore-star" aria-hidden="true" /> <strong>{pkg.rating}</strong> <span className="text-muted">({pkg.reviews} reviews)</span></li>
+                                    <li><Calendar size={14} aria-hidden="true" /> {pkg.duration}</li>
+                                    <li>
+                                        {pkg.weather === 'Excellent' ? <Sun size={14} aria-hidden="true" /> : <CloudSun size={14} aria-hidden="true" />}
+                                        Weather: <strong>{pkg.weather}</strong>
+                                    </li>
+                                </ul>
 
-                                <div className="card-weather">
-                                    {pkg.weather === 'Excellent' ? (
-                                        <Sun size={16} color="#3b82f6" />
-                                    ) : (
-                                        <CloudSun size={16} color="#3b82f6" />
-                                    )}
-                                    <span>Weather: <span className={`weather-status ${pkg.weather === 'Excellent' ? 'text-green' : 'text-blue'}`}>{pkg.weather}</span></span>
-                                </div>
-
-                                <div className="card-tags">
-                                    {pkg.tags.map((tag, idx) => (
-                                        <span key={idx} className="tag-pill">{tag}</span>
+                                <ul className="explore-tags" role="list" aria-label="Highlights">
+                                    {pkg.tags.map((tag) => (
+                                        <li key={tag} className="badge badge--outline">{tag}</li>
                                     ))}
-                                </div>
+                                </ul>
 
-                                <div className="card-footer">
-                                    <div className="price-section">
-                                        <span className="price-label">Starting from</span>
-                                        <span className="price-amount">PKR {pkg.price}</span>
+                                <div className="explore-footer">
+                                    <p className="explore-price">
+                                        <span className="explore-price-label">Starting from</span>
+                                        <span className="explore-price-amount">PKR {pkg.price}</span>
+                                    </p>
+                                    <div className="explore-actions">
+                                        <button type="button" className="btn btn--secondary btn--sm explore-action-btn" onClick={() => setDetailTrip(pkg)}>
+                                            <Info size={16} aria-hidden="true" /> Eco details
+                                        </button>
+                                        <button type="button" className="btn btn--primary btn--sm explore-action-btn" onClick={() => handleBook(pkg)}>
+                                            Book now <ArrowRight size={16} className="btn__arrow" aria-hidden="true" />
+                                            <span className="visually-hidden">(opens the operator&rsquo;s site in a new tab)</span>
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div className="action-buttons">
-                                    <button className="btn-eco-details">
-                                        <Info size={16} /> Eco Details
-                                    </button>
-                                    <button className="btn-book">
-                                        Book Now <ArrowRight size={16} />
-                                    </button>
-                                </div>
+                                {notice?.id === pkg.id && notice.kind === 'booking' && (
+                                    <p className="field__error" role="status">Booking link not available for this trip yet.</p>
+                                )}
+                                {notice?.id === pkg.id && notice.kind === 'save' && (
+                                    <p className="field__error" role="status">{notice.message}</p>
+                                )}
                             </div>
+                        </li>
+                    );
+                })}
+            </ul>
+
+            <div className="explore-bottom">
+                <Link to="/plan" className="btn btn--primary btn--lg">
+                    Plan another trip <ArrowRight size={18} className="btn__arrow" aria-hidden="true" />
+                </Link>
+            </div>
+
+            {detailTrip && detailEco && (
+                <div className="modal-backdrop" onClick={() => setDetailTrip(null)}>
+                    <div
+                        className="modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="explore-modal-title"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button ref={closeRef} type="button" className="btn btn--ghost btn--icon modal__close" onClick={() => setDetailTrip(null)} aria-label="Close eco details">
+                            <X size={20} aria-hidden="true" />
+                        </button>
+                        <p className="eyebrow">Eco details</p>
+                        <h2 id="explore-modal-title" className="explore-modal-title">{detailTrip.title}</h2>
+
+                        <div className="explore-modal-score">
+                            <p className="explore-modal-total">{detailEco.total}<span>/100</span></p>
+                            <span className={`badge badge--${ecoTone(ecoLevel(detailEco.total))}`}>{detailEco.rating}</span>
                         </div>
-                    ))}
-                </div>
 
-                <div className="bottom-actions">
-                    <button className="btn-plan-another">
-                        Plan Another Trip
-                    </button>
-                </div>
-            </main>
+                        <ul className="explore-modal-breakdown" role="list">
+                            {detailEco.breakdown.map((b) => (
+                                <li key={b.key}>
+                                    <span className="explore-modal-factor">{b.label}</span>
+                                    <div className="meter" role="img" aria-label={`${b.label}: ${b.score} of ${b.max}`}>
+                                        <div className={`meter__fill meter__fill--${factorTone(b.score, b.max)}`} style={{ width: `${(b.score / b.max) * 100}%` }} />
+                                    </div>
+                                    <strong>{b.score}/{b.max}</strong>
+                                </li>
+                            ))}
+                        </ul>
 
-            <AIChatbot />
+                        <dl className="explore-modal-facts">
+                            <div><dt>Destination</dt><dd>{detailTrip.destination}</dd></div>
+                            <div><dt>Activities</dt><dd>{detailTrip.activities.join(', ')}</dd></div>
+                            <div><dt>Group size</dt><dd>{detailTrip.groupSize}</dd></div>
+                            <div><dt>Transport</dt><dd>{detailTrip.transport}</dd></div>
+                            <div><dt>Accommodation</dt><dd>{detailTrip.accommodation}</dd></div>
+                        </dl>
+                        <p className="explore-modal-explanation">{detailEco.explanation}</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

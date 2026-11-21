@@ -1,420 +1,304 @@
-import React, { useState } from 'react';
-import {
-    Mountain, Home as HomeIcon, Map as MapIcon, Compass, Leaf, CloudSun, User,
-    MapPin, Users, Clock, Plane, Train, Bus, Car, Building2, Tent, Home as HouseIcon,
-    AlertTriangle, CheckCircle2, Zap, ArrowRight, Info
-} from 'lucide-react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import ProfileSidebar from '../components/ProfileSidebar';
-import AIChatbot from '../components/AIChatbot';
+import {
+    Mountain, Leaf, CloudSun, MapPin, Users, Clock, Bus, Car, Building2, Tent, Home as HouseIcon,
+    AlertTriangle, CheckCircle2, Zap, ArrowRight, Info,
+} from 'lucide-react';
+import PageHeader from '../components/PageHeader';
+import { DESTINATIONS } from '../data/destinations';
+import { calculateEcoScore, ecoLevel } from '../utils/ecoScore';
+import { ecoTone, factorTone } from '../utils/ecoTone';
 import './EcoInsights.css';
 
+// Rough per-person CO2 estimates (kg) used only for the footprint card.
+const TRANSPORT_KG = { Bus: 40, Coaster: 35 };
+const ACCOMMODATION_KG_PER_NIGHT = { Camping: 2, 'Shared Family Rooms': 6, Hotel: 15 };
+const KG_PER_TREE_YEAR = 21;
+
+const BREAKDOWN_ICONS = {
+    destination: MapPin,
+    activities: Leaf,
+    groupSize: Users,
+    transport: Car,
+    accommodation: Building2,
+};
+
+const TRANSPORT_OPTIONS = [
+    { value: 'Bus', icon: Bus, impact: 'Low impact', tone: 'low' },
+    { value: 'Coaster', icon: Bus, impact: 'Low impact', tone: 'low' },
+];
+
+const ACCOMMODATION_OPTIONS = [
+    { value: 'Camping', icon: Tent, impact: 'Low impact', tone: 'low' },
+    { value: 'Hotel', icon: Building2, impact: 'Medium impact', tone: 'medium' },
+    { value: 'Shared Family Rooms', icon: HouseIcon, impact: 'Low impact', tone: 'low' },
+];
+
+function ChoiceGroup({ legend, icon, name, options, value, onChange }) {
+    const LegendIcon = icon;
+    return (
+        <fieldset className="choice-group">
+            <legend className="choice-group__legend"><LegendIcon size={16} aria-hidden="true" /> {legend}</legend>
+            <div className="choice-grid">
+                {options.map(({ value: optionValue, icon: optionIcon, impact, tone }) => {
+                    const Icon = optionIcon;
+                    return (
+                        <label key={optionValue} className="choice">
+                            <input
+                                type="radio"
+                                className="choice__input"
+                                name={name}
+                                value={optionValue}
+                                checked={value === optionValue}
+                                onChange={() => onChange(optionValue)}
+                            />
+                            <Icon size={20} className="choice__icon" aria-hidden="true" />
+                            <span className="choice__title">{optionValue}</span>
+                            <span className="choice__meta">
+                                <span className={tone === 'low' ? 'choice__dot' : 'choice__dot choice__dot--warning'} aria-hidden="true" />
+                                {impact}
+                            </span>
+                        </label>
+                    );
+                })}
+            </div>
+        </fieldset>
+    );
+}
+
 function EcoInsights() {
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const { user } = useAuth();
-    
     // Form State
     const [destination, setDestination] = useState('');
     const [travelers, setTravelers] = useState('');
     const [duration, setDuration] = useState('');
     const [transportType, setTransportType] = useState('');
     const [accommodationType, setAccommodationType] = useState('');
-    
+
     // Result State
-    const [isCalculated, setIsCalculated] = useState(false);
+    const [result, setResult] = useState(null);
+    const isCalculated = result !== null;
 
     const isFormValid = destination !== '' && travelers !== '' && duration !== '' && transportType !== '' && accommodationType !== '';
 
-    const handleCalculate = () => {
+    const handleCalculate = (e) => {
+        e.preventDefault();
         if (isFormValid) {
-            setIsCalculated(true);
+            const days = Math.max(1, parseInt(duration, 10) || 1);
+            const people = Math.max(1, parseInt(travelers, 10) || 1);
+            const eco = calculateEcoScore({
+                destination,
+                activities: [],
+                groupSize: people,
+                transport: transportType,
+                accommodation: accommodationType,
+            });
+            const perPerson = (TRANSPORT_KG[transportType] ?? 40) + (ACCOMMODATION_KG_PER_NIGHT[accommodationType] ?? 15) * days;
+            const co2Kg = perPerson * people;
+            setResult({ eco, destination, days, people, transportType, accommodationType, co2Kg, trees: Math.max(1, Math.ceil(co2Kg / KG_PER_TREE_YEAR)) });
         }
     };
 
+    const level = result ? ecoLevel(result.eco.total) : null;
+    const weak = result ? result.eco.breakdown.filter((b) => b.score / b.max < 0.6) : [];
+    const strong = result ? result.eco.breakdown.filter((b) => b.score / b.max >= 0.6) : [];
+
     return (
-        <div className="eco-page">
-            <ProfileSidebar isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+        <div className="container page">
+            <PageHeader
+                eyebrow="Eco-score calculator"
+                title="Eco-friendly travel insights"
+                subtitle="Calculate your trip's environmental impact and get personalised sustainability recommendations."
+            />
 
-            {/* Top Navigation - Light Theme */}
-            <nav className="top-nav-light">
-                <div className="nav-brand">
-                    <div className="brand-logo-small bg-green-nav">
-                        <Mountain size={20} color="white" />
+            <div className="eco-layout">
+                <form className="card" onSubmit={handleCalculate} aria-labelledby="eco-form-title">
+                    <div className="card__header">
+                        <span className="icon-chip" aria-hidden="true"><Leaf size={18} /></span>
+                        <h2 id="eco-form-title" className="card__title">Trip details</h2>
                     </div>
-                    <div className="brand-text">
-                        <span className="brand-name text-dark">ExploreSmart</span>
-                        <span className="brand-sub text-green">AI Travel Planner</span>
-                    </div>
-                </div>
 
-                <div className="nav-links">
-                    <Link to="/home" className="nav-link text-dark">
-                        <HomeIcon size={16} /> Home
-                    </Link>
-                    <Link to="/plan" className="nav-link text-dark">
-                        <MapIcon size={16} /> Plan Trip
-                    </Link>
-                    <Link to="/explore" className="nav-link text-dark">
-                        <Compass size={16} /> Explore Trips
-                    </Link>
-                    <Link to="/eco" className="nav-link text-dark active">
-                        <Leaf size={16} /> Eco Insights
-                    </Link>
-                    <Link to="/weather" className="nav-link text-dark">
-                        <CloudSun size={16} /> Weather
-                    </Link>
-                </div>
-
-                <div className="nav-profile" onClick={() => setIsProfileOpen(true)} style={{ cursor: 'pointer' }}>
-                    <div className="profile-icon bg-green-nav">
-                        <User size={18} color="white" />
-                    </div>
-                    <div className="profile-text">
-                        <span className="profile-name text-dark">{user?.displayName || 'Guest'}</span>
-                        <span className="profile-action">View Profile</span>
-                    </div>
-                </div>
-            </nav>
-
-            <main className="eco-main">
-                <div className="eco-header-centered">
-                    <div className="eco-badge-main">
-                        <Leaf size={14} /> Eco-Score Calculator
-                    </div>
-                    <h1 className="eco-main-title">Eco-Friendly Travel Insights</h1>
-                    <p className="eco-main-subtitle">
-                        Calculate your trip's environmental impact and get<br />
-                        personalized sustainability recommendations
-                    </p>
-                </div>
-
-                <div className="eco-layout">
-                    {/* Left Column: Form */}
-                    <div className="eco-form-column">
-                        <div className="form-section-title">
-                            <Leaf size={20} className="text-emerald-500" />
-                            <h2>Trip Details</h2>
-                        </div>
-
-                        <div className="eco-form-group">
-                            <label><MapPin size={16} className="text-emerald-500" /> Destination</label>
-                            <select className="eco-input" value={destination} onChange={(e) => setDestination(e.target.value)}>
+                    <div className="form-stack">
+                        <div className="field">
+                            <label htmlFor="eco-destination" className="field__label"><MapPin size={16} aria-hidden="true" /> Destination</label>
+                            <select id="eco-destination" className="select" value={destination} onChange={(e) => setDestination(e.target.value)} required>
                                 <option value="" disabled>Select destination</option>
-                                <option value="Hunza Valley">Hunza Valley</option>
-                                <option value="Skardu">Skardu</option>
-                                <option value="Naran Kaghan">Naran Kaghan</option>
-                                <option value="Swat Valley">Swat Valley</option>
-                                <option value="Murree">Murree</option>
-                                <option value="Fairy Meadows">Fairy Meadows</option>
-                                <option value="Neelum Valley">Neelum Valley</option>
+                                {DESTINATIONS.map((d) => <option key={d} value={d}>{d}</option>)}
                             </select>
                         </div>
 
-                        <div className="eco-form-group">
-                            <label><Users size={16} className="text-emerald-500" /> Number of Travelers</label>
-                            <input type="number" min="1" placeholder="e.g., 4" className="eco-input" value={travelers} onChange={(e) => setTravelers(e.target.value)} />
-                            <span className="eco-help-text">Larger groups reduce per-person environmental impact</span>
-                        </div>
+                        <div className="form-grid">
+                            <div className="field">
+                                <label htmlFor="eco-travelers" className="field__label"><Users size={16} aria-hidden="true" /> Number of travelers</label>
+                                <input id="eco-travelers" type="number" min="1" placeholder="e.g. 4" className="input" value={travelers} onChange={(e) => setTravelers(e.target.value)} aria-describedby="eco-travelers-hint" required />
+                                <p id="eco-travelers-hint" className="field__hint">Larger groups reduce per-person impact.</p>
+                            </div>
 
-                        <div className="eco-form-group">
-                            <label><Clock size={16} className="text-emerald-500" /> Trip Duration (days)</label>
-                            <input type="number" min="1" placeholder="e.g., 5" className="eco-input" value={duration} onChange={(e) => setDuration(e.target.value)} />
-                        </div>
-
-                        {/* Transport Type */}
-                        <div className="eco-selection-group">
-                            <label><Car size={16} className="text-emerald-500" /> Transport Type</label>
-                            <div className="selection-grid">
-                                <div className={`selection-card ${transportType === 'Flight' ? 'selected' : ''}`} onClick={() => setTransportType('Flight')}>
-                                    <Plane size={20} className={transportType === 'Flight' ? 'text-emerald-600' : 'text-slate-500'} />
-                                    <span className="card-title">Flight</span>
-                                    <span className="impact-indicator impact-high"><span className="dot dot-red"></span> High impact</span>
-                                </div>
-                                <div className={`selection-card ${transportType === 'Train' ? 'selected' : ''}`} onClick={() => setTransportType('Train')}>
-                                    <Train size={20} className={transportType === 'Train' ? 'text-emerald-600' : 'text-slate-500'} />
-                                    <span className="card-title">Train</span>
-                                    <span className="impact-indicator impact-low"><span className="dot dot-green"></span> Low impact</span>
-                                </div>
-                                <div className={`selection-card ${transportType === 'Bus/Van' ? 'selected' : ''}`} onClick={() => setTransportType('Bus/Van')}>
-                                    <Bus size={20} className={transportType === 'Bus/Van' ? 'text-emerald-600' : 'text-slate-500'} />
-                                    <span className="card-title">Bus/Van</span>
-                                    <span className="impact-indicator impact-low"><span className="dot dot-green"></span> Low impact</span>
-                                </div>
-                                <div className={`selection-card ${transportType === 'Shared Car' ? 'selected' : ''}`} onClick={() => setTransportType('Shared Car')}>
-                                    <Car size={20} className={transportType === 'Shared Car' ? 'text-emerald-600' : 'text-slate-500'} />
-                                    <span className="card-title">Shared Car</span>
-                                    <span className="impact-indicator impact-medium"><span className="dot dot-orange"></span> Medium impact</span>
-                                </div>
-                                <div className={`selection-card ${transportType === 'Private Car' ? 'selected' : ''}`} onClick={() => setTransportType('Private Car')}>
-                                    <Car size={20} className={transportType === 'Private Car' ? 'text-emerald-600' : 'text-slate-500'} />
-                                    <span className="card-title">Private Car</span>
-                                    <span className="impact-indicator impact-high"><span className="dot dot-red"></span> High impact</span>
-                                </div>
+                            <div className="field">
+                                <label htmlFor="eco-duration" className="field__label"><Clock size={16} aria-hidden="true" /> Trip duration (days)</label>
+                                <input id="eco-duration" type="number" min="1" placeholder="e.g. 5" className="input" value={duration} onChange={(e) => setDuration(e.target.value)} required />
                             </div>
                         </div>
 
-                        {/* Accommodation Type */}
-                        <div className="eco-selection-group">
-                            <label><Building2 size={16} className="text-emerald-500" /> Accommodation Type</label>
-                            <div className="selection-grid-2">
-                                <div className={`selection-card ${accommodationType === 'Eco-Lodge' ? 'selected' : ''}`} onClick={() => setAccommodationType('Eco-Lodge')}>
-                                    <Leaf size={20} className={accommodationType === 'Eco-Lodge' ? 'text-emerald-600' : 'text-slate-500'} />
-                                    <span className="card-title">Eco-Lodge</span>
-                                    <span className="impact-indicator impact-low"><span className="dot dot-green"></span> Low impact</span>
-                                </div>
-                                <div className={`selection-card ${accommodationType === 'Camping' ? 'selected' : ''}`} onClick={() => setAccommodationType('Camping')}>
-                                    <Tent size={20} className={accommodationType === 'Camping' ? 'text-emerald-600' : 'text-slate-500'} />
-                                    <span className="card-title">Camping</span>
-                                    <span className="impact-indicator impact-low"><span className="dot dot-green"></span> Low impact</span>
-                                </div>
-                                <div className={`selection-card ${accommodationType === 'Standard Hotel' ? 'selected' : ''}`} onClick={() => setAccommodationType('Standard Hotel')}>
-                                    <Building2 size={20} className={accommodationType === 'Standard Hotel' ? 'text-emerald-600' : 'text-slate-500'} />
-                                    <span className="card-title">Standard Hotel</span>
-                                    <span className="impact-indicator impact-medium"><span className="dot dot-orange"></span> Medium impact</span>
-                                </div>
-                                <div className={`selection-card ${accommodationType === 'Resort' ? 'selected' : ''}`} onClick={() => setAccommodationType('Resort')}>
-                                    <HouseIcon size={20} className={accommodationType === 'Resort' ? 'text-emerald-600' : 'text-slate-500'} />
-                                    <span className="card-title">Resort</span>
-                                    <span className="impact-indicator impact-high"><span className="dot dot-red"></span> High impact</span>
-                                </div>
-                            </div>
-                        </div>
+                        <ChoiceGroup legend="Transport type" icon={Car} name="eco-transport" options={TRANSPORT_OPTIONS} value={transportType} onChange={setTransportType} />
+                        <ChoiceGroup legend="Accommodation type" icon={Building2} name="eco-accommodation" options={ACCOMMODATION_OPTIONS} value={accommodationType} onChange={setAccommodationType} />
 
-                        {isFormValid ? (
-                            <button className="btn-calculate-eco" onClick={handleCalculate}>
-                                Calculate Eco-Score
-                            </button>
-                        ) : (
-                            <button className="btn-calculate-eco" disabled>
-                                Fill all fields to calculate
-                            </button>
-                        )}
+                        <button type="submit" className="btn btn--primary btn--lg btn--block" disabled={!isFormValid}>
+                            {isFormValid ? 'Calculate eco-score' : 'Fill all fields to calculate'}
+                        </button>
                     </div>
+                </form>
 
-                    {/* Right Column: Insights */}
-                    <div className="eco-insights-column" style={!isCalculated ? { height: '100%' } : {}}>
-                        {!isCalculated ? (
-                            <div className="eco-insights-empty">
-                                <div className="empty-icon-wrapper">
-                                    <Leaf size={32} className="text-slate-400" />
+                <div className="eco-results" aria-live="polite">
+                    {!isCalculated ? (
+                        <div className="card card--sunken empty-state eco-empty">
+                            <span className="icon-chip icon-chip--lg icon-chip--neutral" aria-hidden="true"><Leaf size={28} /></span>
+                            <h2 className="empty-state__title">Your eco-score will appear here</h2>
+                            <p className="empty-state__text">Fill in your trip details to calculate your environmental impact and get personalised sustainability tips.</p>
+                            <p className="status-note eco-empty-tip">
+                                <Info size={16} aria-hidden="true" />
+                                <span><strong>Tip:</strong> eco-friendly transport and accommodation raise your score.</span>
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <section className="eco-score" aria-labelledby="eco-score-title">
+                                <div className="eco-score-ring">
+                                    <svg viewBox="0 0 36 36" className="eco-ring" role="img" aria-label={`Eco score ${result.eco.total} out of 100`}>
+                                        <path className="eco-ring-track" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path className="eco-ring-value" strokeDasharray={`${result.eco.total}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <text x="18" y="18.5" className="eco-ring-number">{result.eco.total}</text>
+                                        <text x="18" y="24" className="eco-ring-sub">/ 100</text>
+                                    </svg>
                                 </div>
-                                
-                                <div className="empty-score-badge">
-                                    <span className="empty-line"></span> N/A
+                                <div className="eco-score-info">
+                                    <h2 id="eco-score-title" className="eco-score-title">Your eco-score</h2>
+                                    <span className={`badge badge--${ecoTone(level)}`}>{level} eco level</span>
+                                    <p className="eco-score-rating">{result.eco.rating}</p>
                                 </div>
-                                
-                                <h2 className="empty-title">Your Eco-Score will appear here</h2>
-                                <p className="empty-subtitle">
-                                    Fill in your trip details to calculate your environmental<br />
-                                    impact and get personalized sustainability tips
-                                </p>
-                                
-                                <div className="empty-tip-box">
-                                    <Info size={16} className="text-blue-500" />
-                                    <p><strong>Tip:</strong> Choose eco-friendly transport and accommodations to improve your score!</p>
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Score Card */}
-                                <div className="eco-score-card">
-                                    <div className="score-card-header">
-                                        <h2>Your Eco-Score</h2>
-                                        <Leaf size={24} color="white" />
-                                    </div>
-                                    <div className="score-card-body">
-                                        <div className="circular-progress">
-                                            <svg viewBox="0 0 36 36" className="circular-chart orange">
-                                                <path className="circle-bg"
-                                                    d="M18 2.0845
-                                                    a 15.9155 15.9155 0 0 1 0 31.831
-                                                    a 15.9155 15.9155 0 0 1 0 -31.831"
-                                                />
-                                                <path className="circle"
-                                                    strokeDasharray="71, 100"
-                                                    d="M18 2.0845
-                                                    a 15.9155 15.9155 0 0 1 0 31.831
-                                                    a 15.9155 15.9155 0 0 1 0 -31.831"
-                                                />
-                                                <text x="18" y="16.5" className="percentage">71</text>
-                                                <text x="18" y="22" className="percentage-sub">/ 100</text>
-                                            </svg>
-                                        </div>
-                                        <div className="score-info">
-                                            <span className="score-badge badge-orange">Medium</span>
-                                            <p>Good, but can improve</p>
-                                        </div>
-                                    </div>
-                                </div>
+                            </section>
 
-                                {/* Breakdown */}
-                                <div className="breakdown-card">
-                                    <div className="breakdown-header">
-                                        <Info size={18} className="text-emerald-600" />
-                                        <h3>Impact Breakdown</h3>
-                                    </div>
-                                    <div className="breakdown-list">
-                                        <div className="breakdown-item">
-                                            <div className="bd-label">
-                                                <Car size={16} className="text-slate-500" /> Transport
-                                            </div>
-                                            <div className="bd-bar-container">
-                                                <div className="bd-bar bg-red-500" style={{ width: '40%' }}></div>
-                                            </div>
-                                            <div className="bd-value text-red-500">40/100</div>
-                                        </div>
-                                        <div className="breakdown-item">
-                                            <div className="bd-label">
-                                                <Users size={16} className="text-slate-500" /> Group Size
-                                            </div>
-                                            <div className="bd-bar-container">
-                                                <div className="bd-bar bg-green-500" style={{ width: '80%' }}></div>
-                                            </div>
-                                            <div className="bd-value text-green-500">80/100</div>
-                                        </div>
-                                        <div className="breakdown-item">
-                                            <div className="bd-label">
-                                                <Building2 size={16} className="text-slate-500" /> Accommodation
-                                            </div>
-                                            <div className="bd-bar-container">
-                                                <div className="bd-bar bg-green-500" style={{ width: '98%' }}></div>
-                                            </div>
-                                            <div className="bd-value text-green-500">98/100</div>
-                                        </div>
-                                        <div className="breakdown-item">
-                                            <div className="bd-label">
-                                                <Clock size={16} className="text-slate-500" /> Duration
-                                            </div>
-                                            <div className="bd-bar-container">
-                                                <div className="bd-bar bg-green-500" style={{ width: '80%' }}></div>
-                                            </div>
-                                            <div className="bd-value text-green-500">80/100</div>
-                                        </div>
-                                    </div>
+                            <section className="card" aria-labelledby="eco-breakdown-title">
+                                <div className="card__header">
+                                    <span className="icon-chip" aria-hidden="true"><Info size={18} /></span>
+                                    <h3 id="eco-breakdown-title" className="card__title">Impact breakdown</h3>
                                 </div>
-
-                                {/* Carbon Footprint */}
-                                <div className="footprint-card">
-                                    <div className="footprint-icon bg-blue-500">
-                                        <CloudSun size={20} color="white" />
-                                    </div>
-                                    <div className="footprint-content">
-                                        <h4>Estimated Carbon Footprint</h4>
-                                        <h2 className="text-blue-600">20 tons CO₂</h2>
-                                        <p>For your 4-day trip with 4 travelers</p>
-                                    </div>
-                                </div>
-
-                                {/* Personalized Tips */}
-                                <div className="tips-card">
-                                    <div className="tips-header">
-                                        <CheckCircle2 size={18} className="text-emerald-600" />
-                                        <h3>Personalized Tips</h3>
-                                    </div>
-                                    <ul className="tips-list">
-                                        <li>
-                                            <div className="tip-check bg-emerald-100 text-emerald-600"><CheckCircle2 size={14}/></div>
-                                            Consider using train or shared transport to reduce carbon emissions.
-                                        </li>
-                                        <li>
-                                            <div className="tip-check bg-emerald-100 text-emerald-600"><CheckCircle2 size={14}/></div>
-                                            Use reusable water bottles and minimize plastic waste.
-                                        </li>
-                                        <li>
-                                            <div className="tip-check bg-emerald-100 text-emerald-600"><CheckCircle2 size={14}/></div>
-                                            Support local businesses and artisans during your trip.
-                                        </li>
-                                    </ul>
-                                </div>
-
-                                {/* Personalized Recommendations List */}
-                                <div className="recommendations-container">
-                                    <div className="rec-header-top">
-                                        <div className="rec-icon-wrapper bg-yellow-400">
-                                            <Zap size={20} color="white" />
-                                        </div>
-                                        <h2>Personalized Environmental Recommendations</h2>
-                                    </div>
-
-                                    <div className="rec-list">
-                                        <div className="rec-item">
-                                            <Zap size={20} className="text-yellow-500" />
-                                            <div className="rec-text">
-                                                <h4>Good Progress - Score: 71/100</h4>
-                                                <p>You're on the right track! Follow these suggestions to improve your environmental impact.</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="rec-item alert-border">
-                                            <AlertTriangle size={20} className="text-orange-500" />
-                                            <div className="rec-text">
-                                                <h4 className="text-orange-600">Transport Impact: 40/100</h4>
-                                                <p>Flights emit 10x more CO₂ than buses/trains. For domestic Pakistan trips, consider trains or buses to reduce emissions by up to 80%.</p>
-                                                <div className="tip-badge bg-emerald-50 text-emerald-700">
-                                                    <Leaf size={12}/> Tip: Train to Hunza saves 2.5 tons CO₂ vs flight
+                                <ul className="eco-breakdown" role="list">
+                                    {result.eco.breakdown.map((b) => {
+                                        const Icon = BREAKDOWN_ICONS[b.key] || Leaf;
+                                        const tone = factorTone(b.score, b.max);
+                                        return (
+                                            <li className="eco-breakdown-row" key={b.key}>
+                                                <span className="eco-breakdown-label"><Icon size={16} aria-hidden="true" /> {b.label}</span>
+                                                <div className="meter eco-breakdown-meter" role="img" aria-label={`${b.label}: ${b.score} of ${b.max}`}>
+                                                    <div className={`meter__fill meter__fill--${tone}`} style={{ width: `${(b.score / b.max) * 100}%` }} />
                                                 </div>
-                                            </div>
-                                        </div>
+                                                <span className={`eco-breakdown-value eco-tone-${tone}`}>{b.score}/{b.max}</span>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </section>
 
-                                        <div className="rec-item">
-                                            <Building2 size={20} className="text-emerald-600" />
-                                            <div className="rec-text">
-                                                <h4 className="text-emerald-700">Accommodation: 98/100 - Outstanding!</h4>
-                                                <p>Excellent eco-friendly accommodation choice! You're supporting sustainable tourism and local communities.</p>
-                                            </div>
-                                        </div>
+                            <section className="card eco-footprint" aria-labelledby="eco-footprint-title">
+                                <span className="icon-chip icon-chip--info icon-chip--lg" aria-hidden="true"><CloudSun size={24} /></span>
+                                <div>
+                                    <h3 id="eco-footprint-title" className="eco-footprint-title">Estimated carbon footprint</h3>
+                                    <p className="eco-footprint-value">{result.co2Kg.toLocaleString()} kg CO₂</p>
+                                    <p className="text-muted">For your {result.days}-day trip with {result.people} traveler{result.people === 1 ? '' : 's'}</p>
+                                </div>
+                            </section>
 
-                                        <div className="rec-item">
-                                            <Users size={20} className="text-blue-500" />
-                                            <div className="rec-text">
-                                                <h4 className="text-blue-700">Group Size: 80/100 - Efficient!</h4>
-                                                <p>Good group size of 4 travelers. Sharing resources reduces per-person environmental impact significantly.</p>
-                                            </div>
-                                        </div>
+                            <section className="card" aria-labelledby="eco-tips-title">
+                                <div className="card__header">
+                                    <span className="icon-chip icon-chip--success" aria-hidden="true"><CheckCircle2 size={18} /></span>
+                                    <h3 id="eco-tips-title" className="card__title">Personalised tips</h3>
+                                </div>
+                                <ul className="eco-checklist" role="list">
+                                    <li>
+                                        <CheckCircle2 size={18} aria-hidden="true" />
+                                        {result.accommodationType === 'Hotel'
+                                            ? 'Consider camping or shared family rooms to lower your accommodation impact.'
+                                            : `Great choice staying in ${result.accommodationType === 'Camping' ? 'a campsite' : 'shared family rooms'} - it keeps your accommodation impact low.`}
+                                    </li>
+                                    <li><CheckCircle2 size={18} aria-hidden="true" /> Use reusable water bottles and minimise plastic waste.</li>
+                                    <li><CheckCircle2 size={18} aria-hidden="true" /> Support local businesses and artisans during your trip.</li>
+                                </ul>
+                            </section>
 
-                                        <div className="rec-item">
-                                            <Leaf size={20} className="text-emerald-500" />
-                                            <div className="rec-text">
-                                                <h4 className="text-emerald-700">Carbon Offset Opportunity</h4>
-                                                <p>Your trip produces 20 tons CO₂. Offset this by planting 200 trees or donating to Pakistan's forest restoration projects.</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="rec-item">
-                                            <CheckCircle2 size={20} className="text-emerald-600" />
-                                            <div className="rec-text">
-                                                <h4 className="text-emerald-700">Essential Eco-Practices for Your 4-Day Trip</h4>
-                                                <ul className="mini-bullet-list">
-                                                    <li>Carry reusable water bottles - saves 40 plastic bottles</li>
-                                                    <li>Use biodegradable soap and avoid single-use plastics</li>
-                                                    <li>Stay on marked trails to protect fragile ecosystems</li>
-                                                    <li>Support local businesses - buy from artisans, eat at local restaurants</li>
-                                                    <li>Take all trash with you - leave Hunza Valley cleaner than you found it</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-
-                                        <div className="rec-item">
-                                            <Mountain size={20} className="text-purple-500" />
-                                            <div className="rec-text">
-                                                <h4 className="text-purple-700">Mountain Region Special Care</h4>
-                                                <p>Hunza Valley is a fragile mountain ecosystem. Respect altitude limits, don't disturb wildlife, avoid littering on trails, and support local conservation efforts to preserve its natural beauty.</p>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <section className="card" aria-labelledby="eco-recs-title">
+                                <div className="card__header">
+                                    <span className="icon-chip icon-chip--accent" aria-hidden="true"><Zap size={18} /></span>
+                                    <h3 id="eco-recs-title" className="card__title">Environmental recommendations</h3>
                                 </div>
 
-                                <button className="btn-explore-packages">
-                                    Explore Eco-Friendly Packages
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </main>
+                                <ul className="eco-recs" role="list">
+                                    <li className="eco-rec">
+                                        <span className="icon-chip icon-chip--accent" aria-hidden="true"><Zap size={18} /></span>
+                                        <div>
+                                            <h4 className="eco-rec-title">{result.eco.rating} - Score: {result.eco.total}/100</h4>
+                                            <p className="eco-rec-text">{result.eco.explanation}</p>
+                                        </div>
+                                    </li>
 
-            <AIChatbot />
+                                    {weak.map((b) => (
+                                        <li className="eco-rec eco-rec--alert" key={b.key}>
+                                            <span className="icon-chip icon-chip--warning" aria-hidden="true"><AlertTriangle size={18} /></span>
+                                            <div>
+                                                <h4 className="eco-rec-title">{b.label} impact: {b.score}/{b.max}</h4>
+                                                <p className="eco-rec-text">This factor is pulling your score down. Small changes here can noticeably improve your trip&rsquo;s environmental footprint.</p>
+                                            </div>
+                                        </li>
+                                    ))}
+
+                                    {strong.map((b) => (
+                                        <li className="eco-rec" key={b.key}>
+                                            <span className="icon-chip icon-chip--success" aria-hidden="true"><CheckCircle2 size={18} /></span>
+                                            <div>
+                                                <h4 className="eco-rec-title">{b.label}: {b.score}/{b.max}</h4>
+                                                <p className="eco-rec-text">A strong eco-friendly result for this part of your trip.</p>
+                                            </div>
+                                        </li>
+                                    ))}
+
+                                    <li className="eco-rec">
+                                        <span className="icon-chip" aria-hidden="true"><Leaf size={18} /></span>
+                                        <div>
+                                            <h4 className="eco-rec-title">Carbon offset opportunity</h4>
+                                            <p className="eco-rec-text">Your trip produces about {result.co2Kg.toLocaleString()} kg CO₂. Offset this by planting around {result.trees} tree{result.trees === 1 ? '' : 's'} or donating to Pakistan&rsquo;s forest restoration projects.</p>
+                                        </div>
+                                    </li>
+
+                                    <li className="eco-rec">
+                                        <span className="icon-chip" aria-hidden="true"><CheckCircle2 size={18} /></span>
+                                        <div>
+                                            <h4 className="eco-rec-title">Essential eco-practices for your {result.days}-day trip</h4>
+                                            <ul className="eco-bullets">
+                                                <li>Carry reusable water bottles to avoid single-use plastic</li>
+                                                <li>Use biodegradable soap and avoid single-use plastics</li>
+                                                <li>Stay on marked trails to protect fragile ecosystems</li>
+                                                <li>Support local businesses - buy from artisans, eat at local restaurants</li>
+                                                <li>Take all trash with you - leave {result.destination} cleaner than you found it</li>
+                                            </ul>
+                                        </div>
+                                    </li>
+
+                                    <li className="eco-rec">
+                                        <span className="icon-chip" aria-hidden="true"><Mountain size={18} /></span>
+                                        <div>
+                                            <h4 className="eco-rec-title">Respect {result.destination}</h4>
+                                            <p className="eco-rec-text">Respect altitude limits, don&rsquo;t disturb wildlife, avoid littering on trails, and support local conservation efforts to preserve {result.destination}&rsquo;s natural beauty.</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </section>
+
+                            <Link to="/explore?eco=1" className="btn btn--primary btn--lg btn--block">
+                                Explore Eco-Friendly Packages <ArrowRight size={18} className="btn__arrow" aria-hidden="true" />
+                            </Link>
+                        </>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

@@ -1,219 +1,125 @@
-import React, { useState } from 'react';
-import {
-    Mountain, Home as HomeIcon, Map as MapIcon, Compass, Leaf, CloudSun, User,
-    ArrowLeft, Bell, MapPin, Cloud, Info, CheckCircle2, Trash2, MessageCircle, X, Sparkles, Send
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import ProfileSidebar from '../components/ProfileSidebar';
-import AIChatbot from '../components/AIChatbot';
+import { useEffect, useState } from 'react';
+import { Bell, Trash2, Clock, CheckCheck, Check } from 'lucide-react';
+import { api } from '../api/client';
+import PageHeader from '../components/PageHeader';
+import StatusNote from '../components/StatusNote';
 import './Notifications.css';
 
+function timeAgo(iso) {
+    const seconds = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+    return new Date(iso).toLocaleDateString();
+}
+
 function Notifications() {
-    const navigate = useNavigate();
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const { user } = useAuth();
+    const [notifications, setNotifications] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const unread = notifications.filter((n) => !n.read).length;
 
-    const [notifications, setNotifications] = useState([
-        {
-            id: 1,
-            type: 'trip',
-            icon: MapPin,
-            iconBg: 'bg-green-light',
-            iconColor: '#059669',
-            title: 'Trip Saved Successfully',
-            message: 'Your Hunza Valley trip has been added to your saved trips.',
-            time: '2 minutes ago',
-            isNew: true
-        },
-        {
-            id: 2,
-            type: 'weather',
-            icon: Cloud,
-            iconBg: 'bg-yellow-light',
-            iconColor: '#d97706',
-            title: 'Weather Alert: Swat Valley',
-            message: 'Heavy rainfall expected in Swat Valley from Feb 5-7. Plan accordingly.',
-            time: '1 hour ago',
-            isNew: true
-        },
-        {
-            id: 3,
-            type: 'info',
-            icon: Info,
-            iconBg: 'bg-blue-light',
-            iconColor: '#2563eb',
-            title: 'New Eco-Friendly Routes Available',
-            message: 'Explore sustainable travel options to Fairy Meadows with reduced carbon footprint.',
-            time: '3 hours ago',
-            isNew: false
-        },
-        {
-            id: 4,
-            type: 'success',
-            icon: CheckCircle2,
-            iconBg: 'bg-green-light',
-            iconColor: '#059669',
-            title: 'Profile Updated',
-            message: 'Your account settings have been updated successfully.',
-            time: '1 day ago',
-            isNew: false
-        },
-        {
-            id: 5,
-            type: 'location',
-            icon: MapPin,
-            iconBg: 'bg-blue-light',
-            iconColor: '#2563eb',
-            title: 'Best Time to Visit Northern Areas',
-            message: 'March-May and September-November are ideal months for visiting Gilgit-Baltistan.',
-            time: '2 days ago',
-            isNew: false
-        },
-        {
-            id: 6,
-            type: 'alert',
-            icon: Cloud,
-            iconBg: 'bg-yellow-light',
-            iconColor: '#d97706',
-            title: 'Road Closure Alert',
-            message: 'Karakoram Highway temporarily closed near Attabad Lake due to landslide.',
-            time: '3 days ago',
-            isNew: false
+    useEffect(() => {
+        let cancelled = false;
+        api.get('/notifications')
+            .then((data) => { if (!cancelled) setNotifications(data.notifications); })
+            .catch((err) => { if (!cancelled) setError(`Could not load notifications. ${err.message}`); })
+            .finally(() => { if (!cancelled) setLoading(false); });
+        return () => { cancelled = true; };
+    }, []);
+
+    // Run an API call, then apply the local change; show a message if it fails.
+    const run = async (call, apply) => {
+        setError('');
+        try {
+            await call();
+            setNotifications(apply);
+        } catch (err) {
+            setError(`That did not work. ${err.message}`);
         }
-    ]);
-
-    const handleClearAll = () => {
-        setNotifications([]);
     };
 
-    const handleMarkAllRead = () => {
-        setNotifications(notifications.map(n => ({ ...n, isNew: false })));
-    };
-
-    const handleDelete = (id) => {
-        setNotifications(notifications.filter(n => n.id !== id));
-    };
+    const handleClearAll = () => run(() => api.del('/notifications'), () => []);
+    const handleMarkAllRead = () => run(
+        () => api.post('/notifications/read-all'),
+        (list) => list.map((n) => ({ ...n, read: true })),
+    );
+    const handleMarkRead = (id) => run(
+        () => api.patch(`/notifications/${id}`, { read: true }),
+        (list) => list.map((n) => (n.id === id ? { ...n, read: true } : n)),
+    );
+    const handleDelete = (id) => run(
+        () => api.del(`/notifications/${id}`),
+        (list) => list.filter((n) => n.id !== id),
+    );
 
     return (
-        <div className="notifications-page">
-            <ProfileSidebar isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+        <div className="container container--narrow page">
+            <PageHeader
+                backTo="/home"
+                title="Notifications"
+                subtitle={unread > 0 ? `${unread} unread · updates about your account and trips` : 'Updates about your account and trips'}
+                actions={notifications.length > 0 && (
+                    <>
+                        <button type="button" className="btn btn--secondary btn--sm" onClick={handleMarkAllRead} disabled={unread === 0}>
+                            <CheckCheck size={16} aria-hidden="true" /> Mark all as read
+                        </button>
+                        <button type="button" className="btn btn--danger-outline btn--sm" onClick={handleClearAll}>
+                            Clear all
+                        </button>
+                    </>
+                )}
+            />
 
-            {/* Top Navigation - Light Theme */}
-            <nav className="top-nav-light">
-                <div className="nav-brand">
-                    <div className="brand-logo-small bg-green-nav">
-                        <Mountain size={20} color="white" />
-                    </div>
-                    <div className="brand-text">
-                        <span className="brand-name text-dark">ExploreSmart</span>
-                        <span className="brand-sub text-green">AI Travel Planner</span>
-                    </div>
+            {error && <StatusNote tone="danger">{error}</StatusNote>}
+
+            {loading ? (
+                <p className="field__hint" role="status">Loading notifications…</p>
+            ) : notifications.length === 0 ? (
+                <div className="card empty-state">
+                    <span className="icon-chip icon-chip--lg icon-chip--neutral" aria-hidden="true"><Bell size={28} /></span>
+                    <h2 className="empty-state__title">No notifications</h2>
+                    <p className="empty-state__text">You&rsquo;re all caught up. Saving a trip or changing your password will show up here.</p>
                 </div>
-
-                <div className="nav-links">
-                    <Link to="/home" className="nav-link text-dark">
-                        <HomeIcon size={16} /> Home
-                    </Link>
-                    <Link to="/plan" className="nav-link text-dark">
-                        <MapIcon size={16} /> Plan Trip
-                    </Link>
-                    <Link to="/explore" className="nav-link text-dark">
-                        <Compass size={16} /> Explore Trips
-                    </Link>
-                    <Link to="/eco" className="nav-link text-dark">
-                        <Leaf size={16} /> Eco Insights
-                    </Link>
-                    <Link to="/weather" className="nav-link text-dark">
-                        <CloudSun size={16} /> Weather
-                    </Link>
-                </div>
-
-                <div className="nav-profile" onClick={() => setIsProfileOpen(true)} style={{ cursor: 'pointer' }}>
-                    <div className="profile-icon bg-green-nav">
-                        <User size={18} color="white" />
-                    </div>
-                    <div className="profile-text">
-                        <span className="profile-name text-dark">{user?.displayName || 'Guest'}</span>
-                        <span className="profile-action">View Profile</span>
-                    </div>
-                </div>
-            </nav>
-
-            <main className="notifications-main">
-                <div className="notifications-container">
-                    {/* Header Section */}
-                    <div className="notifications-header">
-                        <div className="header-top">
-                            <button className="back-btn" onClick={() => navigate('/home')}>
-                                <ArrowLeft size={16} />
-                                <span>Back to Home</span>
-                            </button>
-                        </div>
-
-                        <div className="header-content-wrapper">
-                            <div className="header-titles">
-                                <h1>Notifications</h1>
-                                <p>Stay updated with your travel alerts</p>
+            ) : (
+                <ul className="notif-list" role="list">
+                    {notifications.map(({ id, title, body, createdAt, read }) => (
+                        <li key={id} className={read ? 'card notif-item' : 'card notif-item notif-item--new'}>
+                            <span className="icon-chip" aria-hidden="true"><Bell size={20} /></span>
+                            <div className="notif-body">
+                                <h2 className="notif-title">
+                                    {title}
+                                    {!read && <span className="badge badge--accent">New</span>}
+                                </h2>
+                                <p className="notif-message">{body}</p>
+                                <p className="notif-time"><Clock size={14} aria-hidden="true" /> {timeAgo(createdAt)}</p>
                             </div>
-                            <div className="header-icon-large">
-                                <Bell size={32} color="white" />
-                            </div>
-                        </div>
-
-                        <div className="header-actions">
-                            <button className="btn-mark-read" onClick={handleMarkAllRead}>
-                                Mark all as read
+                            {!read && (
+                                <button
+                                    type="button"
+                                    className="btn btn--ghost btn--icon btn--sm"
+                                    onClick={() => handleMarkRead(id)}
+                                    aria-label={`Mark as read: ${title}`}
+                                >
+                                    <Check size={18} aria-hidden="true" />
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                className="btn btn--ghost btn--icon btn--sm notif-delete"
+                                onClick={() => handleDelete(id)}
+                                aria-label={`Delete notification: ${title}`}
+                            >
+                                <Trash2 size={18} aria-hidden="true" />
                             </button>
-                            <button className="btn-clear" onClick={handleClearAll}>
-                                Clear all
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Notifications List */}
-                    <div className="notifications-list">
-                        {notifications.length === 0 ? (
-                            <div className="empty-notifications">
-                                <Bell size={48} className="text-slate-300 mb-4" />
-                                <h3>No new notifications</h3>
-                                <p>You're all caught up!</p>
-                            </div>
-                        ) : (
-                            notifications.map(notification => (
-                                <div key={notification.id} className={`notification-card ${notification.isNew ? 'is-new' : ''}`}>
-                                    <div className="card-left">
-                                        <div className={`notification-icon ${notification.iconBg}`}>
-                                            <notification.icon size={20} color={notification.iconColor} />
-                                        </div>
-                                    </div>
-
-                                    <div className="card-content">
-                                        <div className="content-header">
-                                            <h4>{notification.title}</h4>
-                                            {notification.isNew && <span className="badge-new">New</span>}
-                                        </div>
-                                        <p className="message">{notification.message}</p>
-                                        <div className="time-info">
-                                            <span className="calendar-icon">📅</span>
-                                            <span>{notification.time}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="card-actions">
-                                        <button className="btn-delete" onClick={() => handleDelete(notification.id)}>
-                                            <Trash2 size={18} color="#ef4444" />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            </main>
-
-            {/* Floating Chat Widget */}
-            <AIChatbot />
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 }

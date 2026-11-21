@@ -1,82 +1,105 @@
-import React from 'react';
-import { Sparkles, Mountain, Plane, Globe, Map } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ArrowRight, MapPin, Leaf } from 'lucide-react';
+import Brand from '../components/Brand';
+import { trips } from '../data/trips';
+import { DESTINATIONS } from '../data/destinations';
+import { calculateEcoScore } from '../utils/ecoScore';
 import './Landing.css';
+
+const sampleTrip = trips[0];
+const sampleEco = calculateEcoScore(sampleTrip);
+
+const FEATURES = [
+    {
+        title: 'Plan a trip in minutes',
+        text: 'Choose a destination, budget, group size, stay and transport. You get a plan summary with an eco score and matching packages.',
+    },
+    {
+        title: `Compare ${trips.length} curated packages`,
+        text: `Packages across ${DESTINATIONS.length} northern destinations, each with price, duration, rating and a link to the original operator.`,
+    },
+    {
+        title: 'Know the impact and the season',
+        text: 'Every trip is scored out of 100 for its environmental impact, with seasonal guidance and weather safety tips for each region.',
+    },
+];
 
 function Landing() {
     return (
-        <div className="app-container">
-            {/* Background Decorators */}
-            <div className="bg-decorator decorator-1">
-                <Mountain size={120} strokeWidth={1} />
-            </div>
-            <div className="bg-decorator decorator-2">
-                <Plane size={150} strokeWidth={1} />
-            </div>
+        <div className="landing">
+            <a className="skip-link" href="#main">Skip to content</a>
 
-            {/* Main Content */}
-            <main className="main-content">
-                <header className="hero-section">
-                    <h1 className="hero-title">
-                        Explore<span className="text-primary">Smart</span>
-                    </h1>
+            <header className="landing-header">
+                <div className="container landing-header-inner">
+                    <Brand to="/" onPhoto />
+                    <nav className="landing-header-actions" aria-label="Account">
+                        <Link to="/signin" className="btn btn--photo-outline btn--sm landing-login">Log in</Link>
+                        <Link to="/signup" className="btn btn--photo btn--sm">Sign up</Link>
+                    </nav>
+                </div>
+            </header>
 
-                    <div className="hero-badge">
-                        <Sparkles size={16} />
-                        <span>AI-Powered Travel Planning for Pakistan</span>
-                        <Sparkles size={16} />
+            <main id="main">
+                <section className="photo-hero landing-hero" aria-labelledby="landing-title">
+                    <img className="photo-hero__media" src="/assets/attabad_lake.png" alt="" />
+                    <div className="photo-hero__scrim" />
+
+                    <div className="container landing-hero-grid">
+                        <div className="landing-hero-copy">
+                            <p className="landing-eyebrow">Trip planning for northern Pakistan</p>
+                            <h1 id="landing-title" className="landing-title">
+                                Go north.<br />
+                                <em>Tread lightly.</em>
+                            </h1>
+                            <p className="landing-lead">
+                                Plan trips to Hunza, Skardu, Swat and beyond. Compare packages, see an eco score
+                                for every trip and check the season before you go.
+                            </p>
+                            <div className="landing-cta">
+                                <Link to="/signup" className="btn btn--photo btn--lg">
+                                    Get started <ArrowRight size={18} className="btn__arrow" aria-hidden="true" />
+                                </Link>
+                                <Link to="/signin" className="btn btn--photo-outline btn--lg">Log in</Link>
+                            </div>
+                        </div>
+
+                        <aside className="landing-score" aria-label="Example eco score">
+                            <p className="landing-score-label"><Leaf size={14} aria-hidden="true" /> Eco score</p>
+                            <p className="landing-score-value">{sampleEco.total}<span>/100</span></p>
+                            <p className="landing-score-trip">{sampleTrip.title}</p>
+                            <p className="landing-score-rating">{sampleEco.rating}</p>
+                        </aside>
                     </div>
 
-                    <p className="hero-description">
-                        Discover the beauty of Pakistan with intelligent trip planning,<br />
-                        eco-friendly insights, and personalized recommendations
+                    <p className="container landing-caption">
+                        <MapPin size={14} aria-hidden="true" /> Attabad Lake, Hunza
                     </p>
+                </section>
 
-                    <div className="hero-actions">
-                        <Link to="/signup" className="btn btn-primary">
-                            Get Started <Sparkles size={18} />
-                        </Link>
-                        <Link to="/signin" className="btn btn-outline">
-                            Log In
-                        </Link>
-                    </div>
-                </header>
-
-                <section className="features-section">
-                    <div className="feature-card">
-                        <div className="feature-icon bg-cyan">
-                            <Sparkles size={24} color="white" />
-                        </div>
-                        <h3 className="feature-title">AI Trip Planner</h3>
-                        <p className="feature-text">
-                            Smart itineraries tailored to your preferences
-                        </p>
-                    </div>
-
-                    <div className="feature-card">
-                        <div className="feature-icon bg-green">
-                            <Map size={24} color="white" />
-                        </div>
-                        <h3 className="feature-title">Eco-Friendly Travel</h3>
-                        <p className="feature-text">
-                            Sustainable tourism with eco-score insights
-                        </p>
-                    </div>
-
-                    <div className="feature-card">
-                        <div className="feature-icon bg-blue">
-                            <Globe size={24} color="white" />
-                        </div>
-                        <h3 className="feature-title">Real-Time Weather</h3>
-                        <p className="feature-text">
-                            Live updates and safety alerts
-                        </p>
-                    </div>
+                <section className="container landing-features" aria-labelledby="landing-features-title">
+                    <h2 id="landing-features-title" className="landing-features-title">
+                        Everything to check before you set off
+                    </h2>
+                    <ol className="landing-feature-list" role="list">
+                        {FEATURES.map((f, i) => (
+                            <li key={f.title} className="landing-feature">
+                                <span className="landing-feature-index" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                                <h3 className="landing-feature-title">{f.title}</h3>
+                                <p className="landing-feature-text">{f.text}</p>
+                            </li>
+                        ))}
+                    </ol>
+                    <Link to="/signup" className="btn btn--primary btn--lg">
+                        Create a free account <ArrowRight size={18} className="btn__arrow" aria-hidden="true" />
+                    </Link>
                 </section>
             </main>
 
-            <footer className="footer">
-                Powered by AI • Designed for Adventure • Built for Sustainability
+            <footer className="landing-footer">
+                <div className="container landing-footer-inner">
+                    <p>ExploreSmart · Final Year Project</p>
+                    <p>Designed for adventure, built for sustainability.</p>
+                </div>
             </footer>
         </div>
     );

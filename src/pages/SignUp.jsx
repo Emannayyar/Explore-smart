@@ -1,164 +1,120 @@
-import React, { useState } from 'react';
-import { Mountain, Sparkles, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import './SignUp.css';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { User, Mail, ArrowRight } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
+import PasswordField from '../components/PasswordField';
+import StatusNote from '../components/StatusNote';
+import AuthLayout from './AuthLayout';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD = 8;
 
 function SignUp() {
-    const [showPassword, setShowPassword] = useState(false);
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const { login } = useAuth();
-    const navigate = useNavigate();
+    const [password, setPassword] = useState('');
+    const [confirm, setConfirm] = useState('');
+    const [errors, setErrors] = useState({});
+    const [serverError, setServerError] = useState('');
+    const [pending, setPending] = useState(false);
+    const { signUp } = useAuth();
 
-    const handleSignUp = (e) => {
+    const handleSignUp = async (e) => {
         e.preventDefault();
-        if (email.trim() !== '') {
-            login(email);
-            navigate('/home');
+        const next = {};
+        if (!name.trim()) next.name = 'Enter your name.';
+        else if (name.trim().length > 80) next.name = 'Use 80 characters or fewer.';
+        if (!email.trim()) next.email = 'Enter your email address.';
+        else if (!EMAIL_RE.test(email.trim())) next.email = 'Enter a valid email address, like name@example.com.';
+        if (!password) next.password = 'Create a password.';
+        else if (password.length < MIN_PASSWORD) next.password = `Use at least ${MIN_PASSWORD} characters.`;
+        if (!confirm) next.confirm = 'Re-enter your password.';
+        else if (confirm !== password) next.confirm = 'Passwords do not match.';
+        setErrors(next);
+        if (Object.keys(next).length > 0) return;
+
+        setServerError('');
+        setPending(true);
+        try {
+            await signUp(name.trim(), email.trim(), password);
+            // PublicOnly sends the signed-in user on to the page they asked for (or /home).
+        } catch (err) {
+            setServerError(err.message);
+            setPending(false);
         }
     };
 
     return (
-        <div className="signup-page-wrapper">
-            <div className="signup-container">
-
-                {/* Left Panel */}
-                <div className="signup-left">
-                    <div className="brand-header">
-                        <Link to="/" className="brand-logo-link">
-                            <div className="brand-logo">
-                                <Mountain size={28} color="white" />
-                            </div>
-                        </Link>
-                        <div>
-                            <h2 className="brand-name">ExploreSmart</h2>
-                            <p className="brand-subtitle">AI Travel Planner</p>
-                        </div>
-                    </div>
-
-                    <h1 className="left-hero-title">
-                        Discover Pakistan's<br />Hidden Gems
-                    </h1>
-
-                    <p className="left-description">
-                        Join thousands of travelers who trust ExploreSmart for intelligent, eco-friendly, and personalized travel planning across Pakistan.
-                    </p>
-
-                    <div className="feature-list">
-                        <div className="feature-item">
-                            <div className="feature-icon-wrapper">
-                                <Sparkles size={20} color="white" />
-                            </div>
-                            <div className="feature-content">
-                                <h4 className="feature-title">AI-Powered Recommendations</h4>
-                                <p className="feature-text">Personalized trip plans based on your preferences</p>
-                            </div>
-                        </div>
-
-                        <div className="feature-item">
-                            <div className="feature-icon-wrapper">
-                                <Sparkles size={20} color="white" />
-                            </div>
-                            <div className="feature-content">
-                                <h4 className="feature-title">Eco-Friendly Travel</h4>
-                                <p className="feature-text">Make sustainable choices with our eco-score ratings</p>
-                            </div>
-                        </div>
-
-                        <div className="feature-item">
-                            <div className="feature-icon-wrapper">
-                                <Sparkles size={20} color="white" />
-                            </div>
-                            <div className="feature-content">
-                                <h4 className="feature-title">Real-Time Updates</h4>
-                                <p className="feature-text">Weather alerts and safety information</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="stats-container">
-                        <div className="stat-item">
-                            <h3 className="stat-number">10K+</h3>
-                            <p className="stat-label">Travelers</p>
-                        </div>
-                        <div className="stat-item">
-                            <h3 className="stat-number">50+</h3>
-                            <p className="stat-label">Destinations</p>
-                        </div>
-                        <div className="stat-item">
-                            <h3 className="stat-number">98%</h3>
-                            <p className="stat-label">Satisfaction</p>
-                        </div>
-                    </div>
+        <AuthLayout
+            title="Create your account"
+            subtitle="Save your plans and pick up where you left off."
+            footer={<>Already have an account? <Link to="/signin">Log in</Link></>}
+        >
+            <form className="form-stack" onSubmit={handleSignUp} noValidate>
+                <div className="field">
+                    <label htmlFor="signup-name" className="field__label"><User size={16} aria-hidden="true" /> Full name</label>
+                    <input
+                        id="signup-name"
+                        type="text"
+                        className="input"
+                        placeholder="Your name"
+                        autoComplete="name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                        aria-invalid={errors.name ? true : undefined}
+                        aria-describedby={errors.name ? 'signup-name-error' : undefined}
+                    />
+                    {errors.name && <p id="signup-name-error" className="field__error">{errors.name}</p>}
                 </div>
 
-                {/* Right Panel */}
-                <div className="signup-right">
-                    <div className="right-header">
-                        <h2 className="welcome-title">Create Account</h2>
-                        <p className="welcome-subtitle">Join us to start your journey</p>
-                    </div>
-
-                    <form className="signup-form" onSubmit={handleSignUp}>
-                        <div className="form-group">
-                            <label htmlFor="email">
-                                <Mail size={16} className="input-icon" color="#09b88a" /> Email Address
-                            </label>
-                            <input 
-                                type="email" 
-                                id="email" 
-                                placeholder="Enter your email" 
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label htmlFor="password">
-                                <Lock size={16} className="input-icon" color="#09b88a" /> Password
-                            </label>
-                            <div className="password-input-wrapper">
-                                <input
-                                    type={showPassword ? "text" : "password"}
-                                    id="password"
-                                    placeholder="Create a password"
-                                />
-                                <button
-                                    type="button"
-                                    className="show-password-btn"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                >
-                                    {showPassword ? <EyeOff size={18} color="#94a3b8" /> : <Eye size={18} color="#94a3b8" />}
-                                </button>
-                            </div>
-                        </div>
-
-                        <button type="submit" className="submit-btn full-width" style={{ marginTop: '1rem' }}>
-                            <Sparkles size={18} /> Sign Up
-                        </button>
-                    </form>
-
-                    <p className="login-prompt">
-                        Already have an account? <Link to="/signin" className="login-link">Log In</Link>
-                    </p>
-
-                    <div className="divider">
-                        <span>or continue with</span>
-                    </div>
-
-                    <div className="social-login">
-                        <button className="social-btn">
-                            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" width="20" height="20" /> Google
-                        </button>
-                        <button className="social-btn">
-                            <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" alt="Facebook" width="20" height="20" /> Facebook
-                        </button>
-                    </div>
+                <div className="field">
+                    <label htmlFor="signup-email" className="field__label"><Mail size={16} aria-hidden="true" /> Email address</label>
+                    <input
+                        id="signup-email"
+                        type="email"
+                        className="input"
+                        placeholder="name@example.com"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        aria-invalid={errors.email ? true : undefined}
+                        aria-describedby={errors.email ? 'signup-email-error' : undefined}
+                    />
+                    {errors.email && <p id="signup-email-error" className="field__error">{errors.email}</p>}
                 </div>
 
-            </div>
-        </div>
+                <PasswordField
+                    id="signup-password"
+                    label="Password"
+                    value={password}
+                    onChange={setPassword}
+                    placeholder="Create a password"
+                    hint={`At least ${MIN_PASSWORD} characters.`}
+                    autoComplete="new-password"
+                    error={errors.password}
+                    required
+                />
+
+                <PasswordField
+                    id="signup-confirm"
+                    label="Confirm password"
+                    value={confirm}
+                    onChange={setConfirm}
+                    placeholder="Re-enter your password"
+                    autoComplete="new-password"
+                    error={errors.confirm}
+                    required
+                />
+
+                {serverError && <StatusNote tone="danger">{serverError}</StatusNote>}
+
+                <button type="submit" className="btn btn--primary btn--lg btn--block" disabled={pending}>
+                    {pending ? 'Creating account…' : 'Create account'} <ArrowRight size={18} className="btn__arrow" aria-hidden="true" />
+                </button>
+            </form>
+        </AuthLayout>
     );
 }
 

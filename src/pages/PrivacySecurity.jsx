@@ -1,257 +1,197 @@
-import React, { useState } from 'react';
-import {
-    Mountain, Home as HomeIcon, Map as MapIcon, Compass, Leaf, CloudSun, User,
-    ArrowLeft, Shield, Lock, Eye, EyeOff, Database, Download, Trash2, UserX, Square, CheckSquare, Sparkles, X, MessageCircle, Send
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import ProfileSidebar from '../components/ProfileSidebar';
-import AIChatbot from '../components/AIChatbot';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Lock, Eye, Database, Download, UserX, ChevronRight } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
+import { api, getToken } from '../api/client';
+import PageHeader from '../components/PageHeader';
+import PasswordField from '../components/PasswordField';
+import { ToggleRow } from '../components/Switch';
+import StatusNote from '../components/StatusNote';
 import './PrivacySecurity.css';
 
-function PrivacySecurity() {
-    const navigate = useNavigate();
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const { user } = useAuth();
-    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-    const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+const MIN_PASSWORD = 8;
 
-    // Privacy checkboxes
-    const [showProfile, setShowProfile] = useState(true);
-    const [shareStats, setShareStats] = useState(true);
-    const [allowLocation, setAllowLocation] = useState(false);
+function PrivacySecurity() {
+    const { user, updateUser, signOut } = useAuth();
+    const navigate = useNavigate();
+
+    const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
+    const [passwordErrors, setPasswordErrors] = useState({});
+    const [passwordStatus, setPasswordStatus] = useState({ tone: 'info', message: '' });
+    const [passwordPending, setPasswordPending] = useState(false);
+
+    const [privacyStatus, setPrivacyStatus] = useState({ tone: 'info', message: '' });
+    const [dataStatus, setDataStatus] = useState({ tone: 'info', message: '' });
+
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [deleteError, setDeleteError] = useState('');
+    const [deleting, setDeleting] = useState(false);
+
+    const prefs = user.preferences;
+
+    const setPassword = (field) => (value) => setPasswords((p) => ({ ...p, [field]: value }));
+
+    const handlePasswordSubmit = async (e) => {
+        e.preventDefault();
+        const errors = {};
+        if (!passwords.current) errors.current = 'Enter your current password.';
+        if (passwords.next.length < MIN_PASSWORD) errors.next = `Use at least ${MIN_PASSWORD} characters.`;
+        if (passwords.confirm !== passwords.next) errors.confirm = 'Passwords do not match.';
+        setPasswordErrors(errors);
+        setPasswordStatus({ tone: 'info', message: '' });
+        if (Object.keys(errors).length > 0) return;
+
+        setPasswordPending(true);
+        try {
+            await api.put('/me/password', { currentPassword: passwords.current, newPassword: passwords.next });
+            setPasswords({ current: '', next: '', confirm: '' });
+            setPasswordStatus({ tone: 'success', message: 'Your password was updated. Other devices were signed out.' });
+        } catch (err) {
+            setPasswordStatus({ tone: 'danger', message: err.message });
+        } finally {
+            setPasswordPending(false);
+        }
+    };
+
+    // Each privacy switch saves straight away.
+    const privacyToggle = (key) => async (value) => {
+        setPrivacyStatus({ tone: 'info', message: '' });
+        try {
+            const data = await api.patch('/me', { preferences: { [key]: value } });
+            updateUser(data.user);
+            setPrivacyStatus({ tone: 'success', message: 'Privacy settings saved.' });
+        } catch (err) {
+            setPrivacyStatus({ tone: 'danger', message: `Could not save that setting. ${err.message}` });
+        }
+    };
+
+    // The export needs the bearer token, so fetch it and save the response as a file.
+    const handleDownload = async () => {
+        setDataStatus({ tone: 'info', message: '' });
+        try {
+            const res = await fetch('/api/me/export', { headers: { Authorization: `Bearer ${getToken()}` } });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
+            const url = URL.createObjectURL(await res.blob());
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'explore-smart-data.json';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            setDataStatus({ tone: 'success', message: 'Your data was downloaded.' });
+        } catch (err) {
+            setDataStatus({ tone: 'danger', message: `Could not download your data. ${err.message}` });
+        }
+    };
+
+    const handleDeleteAccount = async (e) => {
+        e.preventDefault();
+        if (!deletePassword) {
+            setDeleteError('Enter your password to confirm.');
+            return;
+        }
+        setDeleteError('');
+        setDeleting(true);
+        try {
+            await api.del('/me', { password: deletePassword });
+        } catch (err) {
+            setDeleteError(err.message);
+            setDeleting(false);
+            return;
+        }
+        navigate('/');
+        signOut();
+    };
+
+    const cancelDelete = () => {
+        setConfirmingDelete(false);
+        setDeletePassword('');
+        setDeleteError('');
+    };
 
     return (
-        <div className="ps-page">
-            <ProfileSidebar isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+        <div className="container container--narrow page">
+            <PageHeader
+                backTo="/home"
+                title="Privacy & Security"
+                subtitle="Manage your password, privacy preferences and data."
+            />
 
-            {/* Top Navigation - Light Theme */}
-            <nav className="top-nav-light">
-                <div className="nav-brand">
-                    <div className="brand-logo-small bg-green-nav">
-                        <Mountain size={20} color="white" />
+            <div className="privacy-stack">
+                <section className="card" aria-labelledby="privacy-password-title">
+                    <div className="card__header">
+                        <span className="icon-chip icon-chip--info" aria-hidden="true"><Lock size={18} /></span>
+                        <h2 id="privacy-password-title" className="card__title">Change password</h2>
                     </div>
-                    <div className="brand-text">
-                        <span className="brand-name text-dark">ExploreSmart</span>
-                        <span className="brand-sub text-green">AI Travel Planner</span>
+
+                    <form className="form-stack" onSubmit={handlePasswordSubmit} noValidate>
+                        <PasswordField id="privacy-current" label="Current password" value={passwords.current} onChange={setPassword('current')} error={passwordErrors.current} showIcon={false} />
+                        <PasswordField id="privacy-new" label="New password" value={passwords.next} onChange={setPassword('next')} error={passwordErrors.next} hint={`At least ${MIN_PASSWORD} characters.`} autoComplete="new-password" showIcon={false} />
+                        <PasswordField id="privacy-confirm" label="Confirm new password" value={passwords.confirm} onChange={setPassword('confirm')} error={passwordErrors.confirm} autoComplete="new-password" showIcon={false} />
+                        <button type="submit" className="btn btn--primary privacy-submit" disabled={passwordPending}>
+                            {passwordPending ? 'Updating…' : 'Update password'}
+                        </button>
+                    </form>
+                    {passwordStatus.message && <div className="privacy-status"><StatusNote tone={passwordStatus.tone}>{passwordStatus.message}</StatusNote></div>}
+                </section>
+
+                <section className="card" aria-labelledby="privacy-settings-title">
+                    <div className="card__header">
+                        <span className="icon-chip" aria-hidden="true"><Eye size={18} /></span>
+                        <h2 id="privacy-settings-title" className="card__title">Privacy settings</h2>
                     </div>
-                </div>
-
-                <div className="nav-links">
-                    <Link to="/home" className="nav-link text-dark">
-                        <HomeIcon size={16} /> Home
-                    </Link>
-                    <Link to="/plan" className="nav-link text-dark">
-                        <MapIcon size={16} /> Plan Trip
-                    </Link>
-                    <Link to="/explore" className="nav-link text-dark">
-                        <Compass size={16} /> Explore Trips
-                    </Link>
-                    <Link to="/eco" className="nav-link text-dark">
-                        <Leaf size={16} /> Eco Insights
-                    </Link>
-                    <Link to="/weather" className="nav-link text-dark">
-                        <CloudSun size={16} /> Weather
-                    </Link>
-                </div>
-
-                <div className="nav-profile" onClick={() => setIsProfileOpen(true)} style={{ cursor: 'pointer' }}>
-                    <div className="profile-icon bg-green-nav">
-                        <User size={18} color="white" />
+                    <div className="setting-list">
+                        <ToggleRow id="privacy-profile" title="Show my profile to other travellers" description="Allow others to discover your profile" checked={prefs.profilePublic} onChange={privacyToggle('profilePublic')} />
+                        <ToggleRow id="privacy-stats" title="Share my travel activity" description="Help improve recommendations for everyone" checked={prefs.shareActivity} onChange={privacyToggle('shareActivity')} />
+                        <ToggleRow id="privacy-data" title="Allow usage data collection" description="Let us learn from how you use ExploreSmart" checked={prefs.dataCollection} onChange={privacyToggle('dataCollection')} />
                     </div>
-                    <div className="profile-text">
-                        <span className="profile-name text-dark">{user?.displayName || 'Guest'}</span>
-                        <span className="profile-action">View Profile</span>
+                    {privacyStatus.message && <div className="privacy-status"><StatusNote tone={privacyStatus.tone}>{privacyStatus.message}</StatusNote></div>}
+                </section>
+
+                <section className="card" aria-labelledby="privacy-data-title">
+                    <div className="card__header">
+                        <span className="icon-chip icon-chip--neutral" aria-hidden="true"><Database size={18} /></span>
+                        <h2 id="privacy-data-title" className="card__title">Data management</h2>
                     </div>
-                </div>
-            </nav>
-
-            <main className="ps-main">
-                <div className="ps-container">
-
-                    {/* Header Section */}
-                    <div className="ps-header-wrapper">
-                        <div className="header-top">
-                            <button className="back-btn" onClick={() => navigate('/home')}>
-                                <ArrowLeft size={16} />
-                                <span>Back to Home</span>
+                    <ul className="privacy-actions" role="list">
+                        <li>
+                            <button type="button" className="privacy-action" onClick={handleDownload}>
+                                <Download size={20} aria-hidden="true" />
+                                <span className="privacy-action-text">
+                                    <span className="privacy-action-title">Download my data</span>
+                                    <span className="privacy-action-desc">Get a copy of your profile and saved trips</span>
+                                </span>
+                                <ChevronRight size={18} aria-hidden="true" />
                             </button>
-                        </div>
+                        </li>
+                    </ul>
+                    {dataStatus.message && <div className="privacy-status"><StatusNote tone={dataStatus.tone}>{dataStatus.message}</StatusNote></div>}
+                </section>
 
-                        <div className="header-content-wrapper">
-                            <div className="header-titles">
-                                <h1>Privacy & Security</h1>
-                                <p>Manage your data and security settings</p>
-                            </div>
-                            <div className="header-icon-large orange-shield">
-                                <Shield size={32} color="white" />
-                            </div>
-                        </div>
+                <section className="card privacy-danger" aria-labelledby="privacy-danger-title">
+                    <div className="card__header">
+                        <span className="icon-chip icon-chip--danger" aria-hidden="true"><UserX size={18} /></span>
+                        <h2 id="privacy-danger-title" className="card__title">Danger zone</h2>
                     </div>
-
-                    {/* Section 1: Password & Authentication */}
-                    <section className="ps-card">
-                        <div className="ps-card-header">
-                            <div className="ps-icon-wrapper bg-blue-100">
-                                <Lock size={20} color="#3b82f6" />
+                    <h3 className="privacy-danger-heading">Delete account</h3>
+                    <p className="privacy-danger-text">Once you delete your account, there is no going back. This removes all your data permanently.</p>
+                    {confirmingDelete ? (
+                        <form className="form-stack" onSubmit={handleDeleteAccount} noValidate>
+                            <PasswordField id="privacy-delete-password" label="Enter your password to confirm" value={deletePassword} onChange={setDeletePassword} error={deleteError} showIcon={false} />
+                            <div className="privacy-delete-actions">
+                                <button type="submit" className="btn btn--danger" disabled={deleting}>
+                                    {deleting ? 'Deleting…' : 'Permanently delete my account'}
+                                </button>
+                                <button type="button" className="btn btn--secondary" onClick={cancelDelete} disabled={deleting}>Cancel</button>
                             </div>
-                            <h2>Password & Authentication</h2>
-                        </div>
-
-                        <div className="ps-card-body">
-                            <div className="form-group">
-                                <label>Current Password</label>
-                                <div className="input-with-icon">
-                                    <input
-                                        type={showCurrentPassword ? "text" : "password"}
-                                        placeholder="Enter current password"
-                                    />
-                                    <button
-                                        type="button"
-                                        className="btn-eye"
-                                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                    >
-                                        {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="form-group">
-                                <label>New Password</label>
-                                <input type="password" placeholder="Enter new password" />
-                            </div>
-
-                            <div className="form-group">
-                                <label>Confirm New Password</label>
-                                <input type="password" placeholder="Confirm new password" />
-                            </div>
-
-                            <button className="btn-update-password">
-                                Update Password
-                            </button>
-
-                            <div className="two-factor-box">
-                                <div className="tf-info">
-                                    <h4>Two-Factor Authentication</h4>
-                                    <p>Add an extra layer of security to your account</p>
-                                </div>
-                                <div
-                                    className={`tf-toggle ${twoFactorEnabled ? 'active' : ''}`}
-                                    onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
-                                >
-                                    <div className="tf-thumb"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Section 2: Privacy Settings */}
-                    <section className="ps-card">
-                        <div className="ps-card-header">
-                            <div className="ps-icon-wrapper bg-purple-100">
-                                <Eye size={20} color="#a855f7" />
-                            </div>
-                            <h2>Privacy Settings</h2>
-                        </div>
-
-                        <div className="ps-card-body p-0 gap-0">
-                            <div className="privacy-option" onClick={() => setShowProfile(!showProfile)}>
-                                <div className="checkbox-wrapper">
-                                    {showProfile ?
-                                        <div className="custom-check checked"><CheckSquare size={20} color="#a855f7" /></div> :
-                                        <div className="custom-check"><Square size={20} color="#cbd5e1" /></div>
-                                    }
-                                </div>
-                                <div className="option-text">
-                                    <h4>Show my profile to other travelers</h4>
-                                    <p>Allow others to discover your profile</p>
-                                </div>
-                            </div>
-
-                            <div className="privacy-option" onClick={() => setShareStats(!shareStats)}>
-                                <div className="checkbox-wrapper">
-                                    {shareStats ?
-                                        <div className="custom-check checked"><CheckSquare size={20} color="#a855f7" /></div> :
-                                        <div className="custom-check"><Square size={20} color="#cbd5e1" /></div>
-                                    }
-                                </div>
-                                <div className="option-text">
-                                    <h4>Share my travel statistics</h4>
-                                    <p>Help improve recommendations for everyone</p>
-                                </div>
-                            </div>
-
-                            <div className="privacy-option" onClick={() => setAllowLocation(!allowLocation)}>
-                                <div className="checkbox-wrapper">
-                                    {allowLocation ?
-                                        <div className="custom-check checked black-check"><CheckSquare size={20} color="#334155" /></div> :
-                                        <div className="custom-check"><Square size={20} color="#334155" fill="#334155" /></div>
-                                    }
-                                </div>
-                                <div className="option-text">
-                                    <h4>Allow location tracking</h4>
-                                    <p>Enhance location-based recommendations</p>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Section 3: Data Management */}
-                    <section className="ps-card">
-                        <div className="ps-card-header">
-                            <div className="ps-icon-wrapper bg-teal-100">
-                                <Database size={20} color="#14b8a6" />
-                            </div>
-                            <h2>Data Management</h2>
-                        </div>
-
-                        <div className="ps-card-body p-0 gap-0">
-                            <div className="data-option border-bottom">
-                                <div className="data-option-left">
-                                    <Download size={20} color="#14b8a6" />
-                                    <div className="data-text">
-                                        <h4>Download My Data</h4>
-                                        <p>Get a copy of your information</p>
-                                    </div>
-                                </div>
-                                <div className="data-arrow arrow-teal">→</div>
-                            </div>
-
-                            <div className="data-option">
-                                <div className="data-option-left">
-                                    <Trash2 size={20} color="#ef4444" />
-                                    <div className="data-text">
-                                        <h4>Clear Browsing Data</h4>
-                                        <p>Remove search history and cached data</p>
-                                    </div>
-                                </div>
-                                <div className="data-arrow arrow-red">→</div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Section 4: Danger Zone */}
-                    <section className="ps-card danger-zone">
-                        <div className="ps-card-header danger-header">
-                            <div className="ps-icon-wrapper bg-red-100">
-                                <UserX size={20} color="#ef4444" />
-                            </div>
-                            <h2>Danger Zone</h2>
-                        </div>
-
-                        <div className="danger-box">
-                            <h4>Delete Account</h4>
-                            <p>Once you delete your account, there is no going back. This action is permanent and will remove all your data.</p>
-                            <button className="btn-delete-account">
-                                Delete My Account
-                            </button>
-                        </div>
-                    </section>
-                </div>
-            </main>
-
-            {/* Floating Chat Widget */}
-            <AIChatbot />
+                        </form>
+                    ) : (
+                        <button type="button" className="btn btn--danger privacy-submit" onClick={() => setConfirmingDelete(true)}>Delete my account</button>
+                    )}
+                </section>
+            </div>
         </div>
     );
 }

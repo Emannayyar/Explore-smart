@@ -1,42 +1,201 @@
-/* index.css */
+/*
+ * ExploreSmart design tokens.
+ * This is the ONLY file allowed to contain raw colour literals.
+ * Light is the default theme; [data-theme="dark"] on <html> switches to dark.
+ * The theme attribute is set before first paint by the inline script in index.html.
+ */
+
 :root {
-  --color-bg-dark: #0a2420;
-  --color-bg-light: #18483b;
-  --color-primary: #00e0a8;
-  --color-primary-hover: #00c99a;
-  --color-card-bg: rgba(255, 255, 255, 0.05);
-  --color-card-border: rgba(255, 255, 255, 0.08);
-  --color-text-main: #ffffff;
-  --color-text-muted: #a3c2ba;
-  --font-main: 'Inter', sans-serif;
+  color-scheme: light;
+
+  /* ---- Surfaces & ink ---- */
+  --color-bg: #faf8f3;
+  --color-surface: #fffdf9;
+  --color-surface-sunken: #f2efe7;
+  --color-surface-raised: #fffdf9;
+  --color-ink: #101a15;
+  --color-ink-muted: #3f4b44;
+  --color-ink-subtle: #646f68;
+  --color-border: #e5e0d4;
+  --color-border-strong: #cdc6b6;
+
+  /* ---- Brand (one deep green) ---- */
+  --color-brand: #0f5d43;
+  --color-brand-hover: #0a4733;
+  --color-brand-active: #073826;
+  --color-brand-soft: #e3eee7;
+  --color-brand-soft-hover: #d4e6da;
+  --color-brand-text: #0f5d43;
+  --color-on-brand: #fffdf9;
+  --color-link: #0f5d43;
+  --color-link-hover: #0a4733;
+
+  /* ---- Accent (terracotta, sparing) ---- */
+  --color-accent: #d9622b;
+  --color-accent-strong: #a3411a;
+  --color-accent-soft: #f8e6db;
+
+  /* ---- Semantic ---- */
+  --color-success: #186b43;
+  --color-success-soft: #e2f1e7;
+  --color-warning: #8a5a00;
+  --color-warning-soft: #fbefd6;
+  --color-danger: #b42318;
+  --color-danger-hover: #93190f;
+  --color-danger-soft: #fbe4e1;
+  --color-on-danger: #fffdf9;
+  --color-info: #1f5f8b;
+  --color-info-soft: #e1edf5;
+
+  /* Eco levels map onto semantic tokens */
+  --eco-high: var(--color-success);
+  --eco-high-soft: var(--color-success-soft);
+  --eco-medium: var(--color-warning);
+  --eco-medium-soft: var(--color-warning-soft);
+  --eco-low: var(--color-danger);
+  --eco-low-soft: var(--color-danger-soft);
+
+  /* ---- Interaction ---- */
+  --color-focus: #0f5d43;
+  --color-selection-bg: #f3c7ad;
+  --color-selection-ink: #101a15;
+  --color-scrim: rgba(16, 26, 21, 0.5);
+
+  /* ---- Photography ---- */
+  --color-on-photo: #fbf8f1;
+  --color-on-photo-muted: rgba(251, 248, 241, 0.84);
+  --color-on-photo-border: rgba(251, 248, 241, 0.55);
+  --color-on-photo-hover: rgba(251, 248, 241, 0.14);
+  --photo-overlay: linear-gradient(100deg, rgba(9, 16, 12, 0.86) 0%, rgba(9, 16, 12, 0.62) 48%, rgba(9, 16, 12, 0.18) 100%);
+  --photo-overlay-bottom: linear-gradient(0deg, rgba(9, 16, 12, 0.88) 0%, rgba(9, 16, 12, 0.35) 55%, rgba(9, 16, 12, 0) 100%);
+
+  /* ---- Theme preview swatches (Appearance page; identical in both themes) ---- */
+  --swatch-light-bg: #faf8f3;
+  --swatch-light-ink: #0f5d43;
+  --swatch-dark-bg: #0f1713;
+  --swatch-dark-ink: #7fd1ac;
+
+  /* ---- Typography ---- */
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: clamp(1.25rem, 1.15rem + 0.45vw, 1.5rem);
+  --text-xl: clamp(1.5rem, 1.3rem + 0.9vw, 2rem);
+  --text-2xl: clamp(2rem, 1.6rem + 1.8vw, 2.875rem);
+  --text-3xl: clamp(2.5rem, 1.8rem + 3.2vw, 4.25rem);
+  --text-display: clamp(3rem, 1.5rem + 6.4vw, 6.75rem);
+
+  --leading-tight: 1.05;
+  --leading-snug: 1.25;
+  --leading-body: 1.6;
+
+  --tracking-display: -0.035em;
+  --tracking-tight: -0.02em;
+  --tracking-wide: 0.09em;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ---- Spacing ---- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+
+  /* ---- Layout ---- */
+  --container: 76rem;
+  --container-narrow: 52rem;
+  --gutter: clamp(1rem, 4vw, 2rem);
+  --nav-height: 4.25rem;
+
+  /* ---- Radii ---- */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* ---- Borders ---- */
+  --border-width: 1px;
+  --border: var(--border-width) solid var(--color-border);
+  --border-strong: var(--border-width) solid var(--color-border-strong);
+
+  /* ---- Shadows ---- */
+  --shadow-sm: 0 1px 2px rgba(16, 26, 21, 0.06), 0 1px 1px rgba(16, 26, 21, 0.04);
+  --shadow-md: 0 6px 18px -6px rgba(16, 26, 21, 0.14), 0 2px 6px rgba(16, 26, 21, 0.05);
+  --shadow-lg: 0 24px 48px -16px rgba(16, 26, 21, 0.24), 0 4px 12px rgba(16, 26, 21, 0.06);
+
+  /* ---- Z-index ---- */
+  --z-raised: 1;
+  --z-nav: 100;
+  --z-chat: 200;
+  --z-drawer: 300;
+  --z-modal: 400;
+  --z-skip: 500;
+
+  /* ---- Motion ---- */
+  --duration-fast: 140ms;
+  --duration-base: 220ms;
+  --duration-slow: 420ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+[data-theme="dark"] {
+  color-scheme: dark;
 
-body {
-  font-family: var(--font-main);
-  background: radial-gradient(circle at center top, var(--color-bg-light) 0%, var(--color-bg-dark) 100%);
-  background-attachment: fixed;
-  color: var(--color-text-main);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-}
+  --color-bg: #0f1713;
+  --color-surface: #16201b;
+  --color-surface-sunken: #0b120e;
+  --color-surface-raised: #1c2822;
+  --color-ink: #ece8de;
+  --color-ink-muted: #c3c9c2;
+  --color-ink-subtle: #929c95;
+  --color-border: #27342d;
+  --color-border-strong: #3a4c42;
 
-a {
-  text-decoration: none;
-  color: inherit;
-}
+  --color-brand: #1f7a57;
+  --color-brand-hover: #1a6b4c;
+  --color-brand-active: #155a40;
+  --color-brand-soft: #173a2c;
+  --color-brand-soft-hover: #1d4636;
+  --color-brand-text: #7fd1ac;
+  --color-on-brand: #fffdf9;
+  --color-link: #7fd1ac;
+  --color-link-hover: #a3e0c4;
 
-button {
-  font-family: inherit;
-  border: none;
-  cursor: pointer;
-  outline: none;
+  --color-accent: #e8814f;
+  --color-accent-strong: #f09a6c;
+  --color-accent-soft: #3b2418;
+
+  --color-success: #6fcb98;
+  --color-success-soft: #163626;
+  --color-warning: #e3b55a;
+  --color-warning-soft: #3a2e12;
+  --color-danger: #f08a7e;
+  --color-danger-hover: #f4a69c;
+  --color-danger-soft: #3d1c19;
+  --color-on-danger: #1a0b09;
+  --color-info: #86bce2;
+  --color-info-soft: #15293a;
+
+  --color-focus: #7fd1ac;
+  --color-selection-bg: #6b3a20;
+  --color-selection-ink: #fbf8f1;
+  --color-scrim: rgba(3, 7, 5, 0.66);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 20px -6px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.35);
 }

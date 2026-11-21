@@ -1,301 +1,223 @@
-import React, { useState } from 'react';
-import {
-    Mountain, Home as HomeIcon, Map as MapIcon, Compass, Leaf, CloudSun, User,
-    MapPin, TrendingUp, Award, MessageCircle, Users, Settings, Lock, Mail,
-    Sparkles, X, Send
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import ProfileSidebar from '../components/ProfileSidebar';
-import { useTripContext } from '../context/TripContext';
-import AIChatbot from '../components/AIChatbot';
+import { MapPin, Leaf, TrendingUp, ArrowRight, ExternalLink, Trash2, User, Settings, Shield } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
+import { useTripContext } from '../context/useTripContext';
+import { api } from '../api/client';
+import PageHeader from '../components/PageHeader';
+import StatusNote from '../components/StatusNote';
+import { trips as catalogue } from '../data/trips';
+import { ecoLevel, isValidUrl } from '../utils/ecoScore';
+import { ecoTone } from '../utils/ecoTone';
 import './Dashboard.css';
 
+const TABS = [
+    { id: 'trips', label: 'My trips' },
+    { id: 'impact', label: 'Eco-impact summary' },
+    { id: 'settings', label: 'Account settings' },
+];
+
+const formatDate = (iso) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+
+// Booking page for a saved catalogue trip, when the catalogue has a valid link for it.
+const bookingUrl = (saved) => {
+    if (saved.kind !== 'trip') return null;
+    const url = catalogue.find((t) => t.id === saved.tripId)?.sourceUrl;
+    return isValidUrl(url) ? url.trim() : null;
+};
+
 function Dashboard() {
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState('My Trips');
+    const [activeTab, setActiveTab] = useState('trips');
+    const [stats, setStats] = useState(null);
+    const [statsError, setStatsError] = useState(false);
+    const [removeError, setRemoveError] = useState('');
     const { user } = useAuth();
-    const { savedTripsCount } = useTripContext();
+    const { savedTrips, loading, removeSavedTrip } = useTripContext();
+
+    // Reload the stats whenever the saved trips change (a trip was removed, etc.).
+    useEffect(() => {
+        let cancelled = false;
+        api.get('/stats')
+            .then((data) => { if (!cancelled) { setStats(data); setStatsError(false); } })
+            .catch(() => { if (!cancelled) setStatsError(true); });
+        return () => { cancelled = true; };
+    }, [savedTrips]);
+
+    const statCards = [
+        { key: 'saved', label: 'Saved trips', value: stats?.savedTrips, icon: MapPin, tone: '' },
+        { key: 'eco', label: 'Eco-friendly trips', value: stats?.ecoFriendlyTrips, icon: Leaf, tone: 'icon-chip--success' },
+        { key: 'score', label: 'Average eco score', value: stats?.averageEcoScore, icon: TrendingUp, tone: 'icon-chip--info' },
+    ];
+
+    const onTabKeyDown = (e) => {
+        const index = TABS.findIndex((t) => t.id === activeTab);
+        let next = null;
+        if (e.key === 'ArrowRight') next = (index + 1) % TABS.length;
+        if (e.key === 'ArrowLeft') next = (index - 1 + TABS.length) % TABS.length;
+        if (e.key === 'Home') next = 0;
+        if (e.key === 'End') next = TABS.length - 1;
+        if (next === null) return;
+        e.preventDefault();
+        setActiveTab(TABS[next].id);
+        document.getElementById(`dash-tab-${TABS[next].id}`)?.focus();
+    };
+
+    const handleRemove = async (id) => {
+        setRemoveError('');
+        try {
+            await removeSavedTrip(id);
+        } catch (err) {
+            setRemoveError(`Could not remove that trip. ${err.message}`);
+        }
+    };
+
+    // Figures for the impact tab come from the saved trips themselves.
+    const scored = [...savedTrips].sort((a, b) => b.eco.total - a.eco.total);
+    const best = scored[0];
+    const weakest = scored[scored.length - 1];
+    const average = scored.length ? Math.round(scored.reduce((sum, t) => sum + t.eco.total, 0) / scored.length) : null;
+    const ecoCount = scored.filter((t) => t.eco.total >= 60).length;
 
     return (
-        <div className="dashboard-page">
-            <ProfileSidebar isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+        <div className="container page">
+            <PageHeader
+                eyebrow="My dashboard"
+                title={`Welcome back, ${user.displayName}`}
+                subtitle="Your saved trips, eco impact and account in one place."
+                actions={(
+                    <Link to="/plan" className="btn btn--primary">
+                        Plan a trip <ArrowRight size={18} className="btn__arrow" aria-hidden="true" />
+                    </Link>
+                )}
+            />
 
-            {/* Top Navigation - Light Theme */}
-            <nav className="top-nav-light">
-                <div className="nav-brand">
-                    <div className="brand-logo-small bg-green-nav">
-                        <Mountain size={20} color="white" />
-                    </div>
-                    <div className="brand-text">
-                        <span className="brand-name text-dark">ExploreSmart</span>
-                        <span className="brand-sub text-green">AI Travel Planner</span>
-                    </div>
+            <section aria-label="Your stats">
+                <ul className="dash-stats" role="list">
+                    {statCards.map(({ key, label, value, icon, tone }) => {
+                        const Icon = icon;
+                        return (
+                            <li key={key} className="card dash-stat">
+                                <span className={`icon-chip dash-stat-icon ${tone}`} aria-hidden="true"><Icon size={20} /></span>
+                                <p className="dash-stat-value">{value ?? '—'}</p>
+                                <p className="dash-stat-label">{label}</p>
+                                {value === null && <p className="field__hint">Save a trip to see this</p>}
+                            </li>
+                        );
+                    })}
+                </ul>
+                {statsError && <StatusNote tone="warning">Could not load your stats right now.</StatusNote>}
+            </section>
+
+            <section className="card dash-panel-card" aria-label="Dashboard sections">
+                <div className="tabs" role="tablist" aria-label="Dashboard sections" onKeyDown={onTabKeyDown}>
+                    {TABS.map((t) => (
+                        <button
+                            key={t.id}
+                            id={`dash-tab-${t.id}`}
+                            type="button"
+                            role="tab"
+                            className="tabs__tab"
+                            aria-selected={activeTab === t.id}
+                            aria-controls={`dash-panel-${t.id}`}
+                            tabIndex={activeTab === t.id ? 0 : -1}
+                            onClick={() => setActiveTab(t.id)}
+                        >
+                            {t.label}
+                        </button>
+                    ))}
                 </div>
 
-                <div className="nav-links">
-                    <Link to="/home" className="nav-link text-dark">
-                        <HomeIcon size={16} /> Home
-                    </Link>
-                    <Link to="/plan" className="nav-link text-dark">
-                        <MapIcon size={16} /> Plan Trip
-                    </Link>
-                    <Link to="/explore" className="nav-link text-dark">
-                        <Compass size={16} /> Explore Trips
-                    </Link>
-                    <Link to="/eco" className="nav-link text-dark">
-                        <Leaf size={16} /> Eco Insights
-                    </Link>
-                    <Link to="/weather" className="nav-link text-dark">
-                        <CloudSun size={16} /> Weather
-                    </Link>
+                <div
+                    id={`dash-panel-${activeTab}`}
+                    role="tabpanel"
+                    aria-labelledby={`dash-tab-${activeTab}`}
+                    className="dash-panel"
+                    tabIndex={0}
+                >
+                    {activeTab === 'trips' && (
+                        loading ? (
+                            <p className="field__hint" role="status">Loading your trips…</p>
+                        ) : savedTrips.length === 0 ? (
+                            <div className="empty-state">
+                                <span className="icon-chip icon-chip--lg icon-chip--neutral" aria-hidden="true"><MapPin size={28} /></span>
+                                <h2 className="empty-state__title">No saved trips yet</h2>
+                                <p className="empty-state__text">Save a plan from Plan Trip, or tap the heart on a package in Explore Trips, and it will show up here.</p>
+                                <Link to="/plan" className="btn btn--primary">Plan your first trip</Link>
+                            </div>
+                        ) : (
+                            <>
+                                {removeError && <StatusNote tone="danger">{removeError}</StatusNote>}
+                                <ul className="dash-trip-list" role="list">
+                                    {savedTrips.map((t) => {
+                                        const url = bookingUrl(t);
+                                        return (
+                                            <li key={t.id} className="dash-trip">
+                                                <div className="dash-trip-main">
+                                                    <h3 className="dash-trip-title">{t.title}</h3>
+                                                    <p className="dash-trip-meta">
+                                                        <MapPin size={14} aria-hidden="true" /> {t.destination}
+                                                        <span className="badge badge--outline">{t.kind === 'trip' ? 'Package' : 'Smart plan'}</span>
+                                                        <span className={`badge badge--${ecoTone(ecoLevel(t.eco.total))}`}>
+                                                            <Leaf size={12} aria-hidden="true" /> {t.eco.total}/100 · {t.eco.rating}
+                                                        </span>
+                                                    </p>
+                                                    <p className="dash-trip-date">Saved {formatDate(t.createdAt)}</p>
+                                                </div>
+                                                <div className="dash-trip-actions">
+                                                    {url && (
+                                                        <a className="btn btn--secondary btn--sm" href={url} target="_blank" rel="noopener noreferrer">
+                                                            Open booking page <ExternalLink size={14} aria-hidden="true" />
+                                                            <span className="visually-hidden">(opens in a new tab)</span>
+                                                        </a>
+                                                    )}
+                                                    <button type="button" className="btn btn--ghost btn--sm" onClick={() => handleRemove(t.id)}>
+                                                        <Trash2 size={16} aria-hidden="true" /> Remove
+                                                        <span className="visually-hidden"> {t.title}</span>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </>
+                        )
+                    )}
+
+                    {activeTab === 'impact' && (
+                        savedTrips.length === 0 ? (
+                            <div className="empty-state">
+                                <span className="icon-chip icon-chip--lg icon-chip--success" aria-hidden="true"><Leaf size={28} /></span>
+                                <h2 className="empty-state__title">No eco figures yet</h2>
+                                <p className="empty-state__text">Save a trip and its eco score will be summarised here. You can also score any trip with the calculator.</p>
+                                <Link to="/eco" className="btn btn--secondary">Open Eco Insights</Link>
+                            </div>
+                        ) : (
+                            <dl className="dash-impact">
+                                <div className="card card--sunken"><dt>Average eco score</dt><dd>{average}/100</dd></div>
+                                <div className="card card--sunken"><dt>Trips scoring 60 or higher</dt><dd>{ecoCount} of {scored.length}</dd></div>
+                                <div className="card card--sunken"><dt>Best trip</dt><dd>{best.title} <span className="dash-impact-score">{best.eco.total}/100</span></dd></div>
+                                <div className="card card--sunken"><dt>Weakest trip</dt><dd>{weakest.title} <span className="dash-impact-score">{weakest.eco.total}/100</span></dd></div>
+                            </dl>
+                        )
+                    )}
+
+                    {activeTab === 'settings' && (
+                        <div className="dash-account">
+                            <h2 className="dash-legend"><User size={18} aria-hidden="true" /> Your profile</h2>
+                            <dl className="dash-impact">
+                                <div><dt>Name</dt><dd>{user.name}</dd></div>
+                                <div><dt>Email</dt><dd>{user.email}</dd></div>
+                                <div><dt>Phone</dt><dd>{user.phone || 'Not set'}</dd></div>
+                                <div><dt>Location</dt><dd>{user.location || 'Not set'}</dd></div>
+                            </dl>
+                            <div className="dash-settings-actions">
+                                <Link to="/account-settings" className="btn btn--primary"><Settings size={18} aria-hidden="true" /> Account settings</Link>
+                                <Link to="/privacy-security" className="btn btn--secondary"><Shield size={18} aria-hidden="true" /> Privacy &amp; security</Link>
+                            </div>
+                        </div>
+                    )}
                 </div>
-
-                <div className="nav-profile" onClick={() => setIsProfileOpen(true)} style={{ cursor: 'pointer' }}>
-                    <div className="profile-icon bg-green-nav">
-                        <User size={18} color="white" />
-                    </div>
-                    <div className="profile-text">
-                        <span className="profile-name text-dark">{user?.displayName || 'Guest'}</span>
-                        <span className="profile-action">View Profile</span>
-                    </div>
-                </div>
-            </nav>
-
-            <main className="dashboard-main">
-                {/* Header Profile Section */}
-                <header className="dashboard-header">
-                    <div className="header-avatar">
-                        <User size={40} color="white" />
-                    </div>
-                    <div className="header-info">
-                        <h1>My Dashboard</h1>
-                        <p>Welcome back,<br />{user?.displayName || 'Guest'}!</p>
-                    </div>
-                </header>
-
-                {/* Stats Cards Section */}
-                <section className="stats-cards-grid">
-                    <div className="stat-card">
-                        <div className="stat-icon-wrapper">
-                            <MapPin size={24} className="text-blue-500" />
-                            <span className="stat-label-small">Total</span>
-                        </div>
-                        <h2>{savedTripsCount}</h2>
-                        <p>Saved Trips</p>
-                    </div>
-
-                    <div className="stat-card">
-                        <div className="stat-icon-wrapper">
-                            <Leaf size={24} className="text-green-500" />
-                            <span className="stat-label-small">High</span>
-                        </div>
-                        <h2>{savedTripsCount > 0 ? savedTripsCount : 0}</h2>
-                        <p>Eco-Friendly Trips</p>
-                    </div>
-
-                    <div className="stat-card">
-                        <div className="stat-icon-wrapper">
-                            <TrendingUp size={24} className="text-purple-500" />
-                            <span className="stat-label-small">Score</span>
-                        </div>
-                        <h2>{savedTripsCount > 0 ? '85%' : '0%'}</h2>
-                        <p>Eco Rating</p>
-                    </div>
-
-                    <div className="stat-card">
-                        <div className="stat-icon-wrapper">
-                            <Award size={24} className="text-yellow-500" />
-                            <span className="stat-label-small">Impact</span>
-                        </div>
-                        <h2>{savedTripsCount > 0 ? (savedTripsCount * 1.5).toFixed(1) : 0}</h2>
-                        <p>Tons CO₂ Saved</p>
-                    </div>
-                </section>
-
-                {/* Content Tabs area */}
-                <section className="dashboard-content-area">
-                    <div className="tabs-container">
-                        <div className="tabs-nav">
-                            <div
-                                className={`tab-item ${activeTab === 'My Trips' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('My Trips')}
-                            >
-                                <span>My Trips</span>
-                            </div>
-                            <div
-                                className={`tab-item ${activeTab === 'Eco-Impact Summary' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('Eco-Impact Summary')}
-                            >
-                                <span>Eco-Impact Summary</span>
-                            </div>
-                            <div
-                                className={`tab-item ${activeTab === 'Account Settings' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('Account Settings')}
-                            >
-                                <span>Account Settings</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="tab-content">
-                        {activeTab === 'My Trips' && (
-                            savedTripsCount === 0 ? (
-                                <div className="empty-state">
-                                    <div className="empty-icon-wrapper">
-                                        <MapPin size={48} className="text-slate-300" strokeWidth={1.5} />
-                                    </div>
-                                    <h3>No saved trips yet</h3>
-                                    <p>Start planning your dream trip to Pakistan!</p>
-                                    <Link to="/plan">
-                                        <button className="btn-plan-first">Plan Your First Trip</button>
-                                    </Link>
-                                </div>
-                            ) : (
-                                <div className="empty-state">
-                                    <div className="empty-icon-wrapper">
-                                        <MapPin size={48} className="text-green-500" strokeWidth={1.5} />
-                                    </div>
-                                    <h3>You have {savedTripsCount} saved {savedTripsCount === 1 ? 'trip' : 'trips'}!</h3>
-                                    <p>Ready to start your adventure in Pakistan?</p>
-                                    <Link to="/plan">
-                                        <button className="btn-plan-first" style={{ marginTop: '1rem' }}>Plan Another Trip</button>
-                                    </Link>
-                                </div>
-                            )
-                        )}
-
-                        {activeTab === 'Eco-Impact Summary' && (
-                            <div className="eco-impact-summary">
-                                <h2 className="section-title">Your Environmental Impact</h2>
-
-                                <div className="overall-score-card">
-                                    <div className="score-info">
-                                        <h3>Overall Eco-Score</h3>
-                                        <p>Based on your travel choices</p>
-                                    </div>
-                                    <div className="score-value">
-                                        <span className="huge-number">{savedTripsCount > 0 ? '85' : '0'}</span>
-                                        <span className="score-denominator">out of 100</span>
-                                    </div>
-                                </div>
-
-                                <div className="impact-cards-row">
-                                    <div className="impact-card footprint-card">
-                                        <Leaf size={28} className="icon-green mb-3" />
-                                        <h4>Carbon Footprint</h4>
-                                        <div className="impact-value text-green-dark">
-                                            {savedTripsCount > 0 ? (savedTripsCount * 1.5).toFixed(1) : '0'} tons
-                                        </div>
-                                        <p>CO₂ saved through eco-friendly choices</p>
-                                    </div>
-
-                                    <div className="impact-card group-card">
-                                        <Users size={28} className="icon-blue mb-3" />
-                                        <h4>Group Travel Impact</h4>
-                                        <div className="impact-value text-blue-dark">35%</div>
-                                        <p>Lower per-person environmental impact</p>
-                                    </div>
-                                </div>
-
-                                <div className="achievements-section">
-                                    <div className="achievement-header">
-                                        <Award size={20} className="text-orange" />
-                                        <h3>Eco-Friendly Achievements</h3>
-                                    </div>
-                                    <div className="achievement-item">
-                                        <div className="achievement-icon bg-green-solid">
-                                            <Leaf size={16} color="white" />
-                                        </div>
-                                        <div className="achievement-text">
-                                            <h4>Eco Warrior</h4>
-                                            <p>{savedTripsCount} high eco-score trips planned</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'Account Settings' && (
-                            <div className="account-settings-content">
-                                <h2 className="section-title">Account Settings</h2>
-
-                                <div className="settings-section">
-                                    <div className="settings-header">
-                                        <User size={18} className="icon-emerald-dark" />
-                                        <h3>Profile Information</h3>
-                                    </div>
-                                    <div className="settings-body">
-                                        <div className="form-group-acc">
-                                            <label>Full Name</label>
-                                            <input type="text" className="settings-input" defaultValue={user?.displayName || "Guest"} />
-                                        </div>
-                                        <div className="form-group-acc">
-                                            <label><Mail size={14} className="icon-emerald-dark" /> Email Address</label>
-                                            <input type="email" className="settings-input" defaultValue={user?.email || "No email provided"} />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="settings-section">
-                                    <div className="settings-header">
-                                        <Settings size={18} className="icon-emerald-dark" />
-                                        <h3>Travel Preferences</h3>
-                                    </div>
-                                    <div className="settings-body">
-                                        <div className="pref-item">
-                                            <div className="pref-text">
-                                                <h4>Prefer eco-friendly options</h4>
-                                                <p>Prioritize sustainable travel choices</p>
-                                            </div>
-                                            <div className="toggle-switch active">
-                                                <div className="toggle-thumb"></div>
-                                            </div>
-                                        </div>
-                                        <div className="pref-item border-top">
-                                            <div className="pref-text">
-                                                <h4>Email notifications</h4>
-                                                <p>Receive trip recommendations and alerts</p>
-                                            </div>
-                                            <div className="toggle-switch disabled">
-                                                <div className="toggle-thumb"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="settings-section">
-                                    <div className="settings-header">
-                                        <Lock size={18} className="icon-emerald-dark" />
-                                        <h3>Change Password</h3>
-                                    </div>
-                                    <div className="settings-body">
-                                        <div className="form-group-acc">
-                                            <label>Current Password</label>
-                                            <input type="password" className="settings-input" placeholder="Enter current password" />
-                                        </div>
-                                        <div className="form-group-acc">
-                                            <label>New Password</label>
-                                            <input type="password" className="settings-input" placeholder="Enter new password" />
-                                        </div>
-                                        <div className="form-group-acc">
-                                            <label>Confirm New Password</label>
-                                            <input type="password" className="settings-input" placeholder="Confirm new password" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <button className="btn-save-settings">
-                                    Save Changes
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </section>
-            </main>
-
-            {/* Floating Chat Widget */}
-            <AIChatbot />
+            </section>
         </div>
     );
 }

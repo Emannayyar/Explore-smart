@@ -1,0 +1,35 @@
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-shell-main {
+  flex: 1;
+}
+
+.app-shell-main:focus {
+  outline: 2px solid transparent;
+}
+
+.app-shell-main:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.app-shell-footer {
+  border-top: var(--border);
+  background-color: var(--color-surface-sunken);
+  color: var(--color-ink-subtle);
+  font-size: var(--text-xs);
+}
+
+.app-shell-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-5);
+  padding-block: var(--space-5);
+  padding-right: calc(var(--gutter) + 4.5rem);
+}

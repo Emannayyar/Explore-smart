@@ -1,133 +1,99 @@
-import React from 'react';
-import {
-    X, User, Heart, Settings, Bell, Shield,
-    Palette, Mail, LogOut
-} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { X, LayoutDashboard, Settings, Bell, Shield, Palette, LifeBuoy, LogOut } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
+import { useDialogFocus } from '../hooks/useDialogFocus';
+import { api } from '../api/client';
 import './ProfileSidebar.css';
+
+const MENU = [
+    { to: '/dashboard', label: 'My Dashboard', hint: 'Saved trips and eco impact', icon: LayoutDashboard },
+    { to: '/account-settings', label: 'Account Settings', hint: 'Profile and travel preferences', icon: Settings },
+    { to: '/notifications', label: 'Notifications', hint: 'Alerts and updates', icon: Bell },
+    { to: '/privacy-security', label: 'Privacy & Security', hint: 'Password, data and permissions', icon: Shield },
+    { to: '/appearance', label: 'Appearance', hint: 'Light, dark or automatic theme', icon: Palette },
+    { to: '/contact-support', label: 'Contact Support', hint: 'Questions and help', icon: LifeBuoy },
+];
 
 const ProfileSidebar = ({ isOpen, onClose }) => {
     const navigate = useNavigate();
-    const { user, logout } = useAuth();
+    const { user, signOut } = useAuth();
+    const [unread, setUnread] = useState(0);
+    const closeRef = useRef(null);
+    useDialogFocus(isOpen, closeRef, onClose);
+
+    // Refresh the unread count each time the panel opens.
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        let cancelled = false;
+        api.get('/notifications')
+            .then((data) => { if (!cancelled) setUnread(data.unread); })
+            .catch(() => {});
+        return () => { cancelled = true; };
+    }, [isOpen]);
+
+    const name = user?.displayName || '';
 
     const handleLogout = () => {
-        logout();
         onClose();
-        navigate('/signin');
+        navigate('/');
+        signOut();
     };
 
     return (
         <>
-            {/* Overlay */}
-            <div className={`sidebar-overlay ${isOpen ? 'show' : ''}`} onClick={onClose} />
+            <div className="profile-panel-scrim" data-open={isOpen} onClick={onClose} aria-hidden="true" />
 
-            {/* Sidebar */}
-            <div className={`profile-sidebar ${isOpen ? 'open' : ''}`}>
-                <div className="sidebar-header">
-                    <button className="close-btn" onClick={onClose}>
-                        <X size={20} color="white" />
+            <aside
+                className="profile-panel"
+                data-open={isOpen}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="profile-panel-name"
+            >
+                <div className="profile-panel-head">
+                    <button ref={closeRef} type="button" className="profile-panel-close btn btn--ghost btn--icon" onClick={onClose} aria-label="Close profile menu">
+                        <X size={20} aria-hidden="true" />
                     </button>
-                    <div className="profile-info">
-                        <div className="profile-avatar">
-                            <User size={28} color="#059669" />
-                        </div>
-                        <div className="profile-details">
-                            <h2>{user?.displayName || "Guest"}</h2>
-                            <p>{user?.email || "Not signed in"}</p>
-                        </div>
-                    </div>
+                    <span className="profile-panel-avatar" aria-hidden="true">{name.charAt(0).toUpperCase()}</span>
+                    <h2 id="profile-panel-name" className="profile-panel-name">{name}</h2>
+                    <p className="profile-panel-email">{user?.email}</p>
                 </div>
 
-                <div className="sidebar-menu">
-                    <div className="menu-item" onClick={() => { onClose(); navigate('/dashboard'); }}>
-                        <div className="menu-icon bg-light-green">
-                            <User size={20} color="#059669" />
-                        </div>
-                        <div className="menu-text">
-                            <h3>My Dashboard</h3>
-                            <p>View your profile & trips</p>
-                        </div>
-                    </div>
+                <nav className="profile-panel-nav" aria-label="Account">
+                    <ul className="profile-panel-list" role="list">
+                        {MENU.map(({ to, label, hint, icon }) => {
+                            const Icon = icon;
+                            return (
+                                <li key={to}>
+                                    <Link to={to} className="profile-panel-item" onClick={onClose}>
+                                        <span className="icon-chip" aria-hidden="true"><Icon size={18} /></span>
+                                        <span className="profile-panel-item-text">
+                                            <span className="profile-panel-item-label">{label}</span>
+                                            <span className="profile-panel-item-hint">{hint}</span>
+                                        </span>
+                                        {to === '/notifications' && unread > 0 && (
+                                            <span className="badge badge--accent" aria-label={`${unread} unread`}>{unread}</span>
+                                        )}
+                                    </Link>
+                                </li>
+                            );
+                        })}
+                    </ul>
 
-                    <div className="menu-item" onClick={() => { onClose(); navigate('/dashboard'); }}>
-                        <div className="menu-icon bg-light-pink">
-                            <Heart size={20} color="#db2777" />
-                        </div>
-                        <div className="menu-text">
-                            <h3>Saved Trips</h3>
-                            <p>Your favorite destinations</p>
-                        </div>
-                    </div>
+                    <div className="profile-panel-divider" />
 
-                    <div className="menu-item" onClick={() => { onClose(); navigate('/account-settings'); }}>
-                        <div className="menu-icon bg-light-blue">
-                            <Settings size={20} color="#3b82f6" />
-                        </div>
-                        <div className="menu-text">
-                            <h3>Account Settings</h3>
-                            <p>Manage your preferences</p>
-                        </div>
-                    </div>
+                    <button type="button" className="profile-panel-item profile-panel-item--danger" onClick={handleLogout}>
+                        <span className="icon-chip icon-chip--danger" aria-hidden="true"><LogOut size={18} /></span>
+                        <span className="profile-panel-item-text">
+                            <span className="profile-panel-item-label">Log out</span>
+                            <span className="profile-panel-item-hint">Sign out of this device</span>
+                        </span>
+                    </button>
+                </nav>
 
-                    <div className="menu-item" onClick={() => { onClose(); navigate('/notifications'); }}>
-                        <div className="menu-icon bg-light-purple">
-                            <Bell size={20} color="#7c3aed" />
-                        </div>
-                        <div className="menu-text">
-                            <h3>Notifications</h3>
-                            <p>Alerts & updates</p>
-                        </div>
-                    </div>
-
-                    <div className="menu-item" onClick={() => { onClose(); navigate('/privacy-security'); }}>
-                        <div className="menu-icon bg-light-yellow">
-                            <Shield size={20} color="#d97706" />
-                        </div>
-                        <div className="menu-text">
-                            <h3>Privacy & Security</h3>
-                            <p>Data & permissions</p>
-                        </div>
-                    </div>
-
-                    <div className="menu-item" onClick={() => { onClose(); navigate('/appearance'); }}>
-                        <div className="menu-icon bg-light-indigo">
-                            <Palette size={20} color="#4f46e5" />
-                        </div>
-                        <div className="menu-text">
-                            <h3>Appearance</h3>
-                            <p>Theme & display options</p>
-                        </div>
-                    </div>
-
-                    <div className="menu-item" onClick={() => { onClose(); navigate('/contact-support'); }}>
-                        <div className="menu-icon bg-light-teal">
-                            <Mail size={20} color="#0d9488" />
-                        </div>
-                        <div className="menu-text">
-                            <h3>Contact Support</h3>
-                            <p>Get help & assistance</p>
-                        </div>
-                    </div>
-
-                    <div className="menu-divider"></div>
-
-                    <div className="menu-item logout-item" onClick={handleLogout}>
-                        <div className="menu-icon bg-light-red">
-                            <LogOut size={20} color="#dc2626" />
-                        </div>
-                        <div className="menu-text">
-                            <h3 className="text-red">Logout</h3>
-                            <p className="text-red">Sign out of your account</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="sidebar-footer">
-                    <p>ExploreSmart v1.0 • Final Year Project</p>
-                    <p>© 2026 All rights reserved</p>
-                </div>
-            </div>
+                <p className="profile-panel-footer">ExploreSmart v1.0 · Final Year Project</p>
+            </aside>
         </>
     );
 };
